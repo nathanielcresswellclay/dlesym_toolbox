@@ -305,25 +305,25 @@ def main(
 PARAMS_hydrostatic = {
     "forecast_files": [
         "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_256_128_128/forecast_60d_monthly.nc",
-        "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v3_q50/forecast_60d_monthly.nc",
-        "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v3_q75/forecast_60d_monthly.nc",
-        "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v3_q95/forecast_60d_monthly.nc",
+        # "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v3_q50/forecast_60d_monthly.nc",
+        # "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v3_q75/forecast_60d_monthly.nc",
+        # "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v3_q95/forecast_60d_monthly.nc",
         "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v2/forecast_60d_monthly.nc"
     ],
     "z1000_verif":"/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_z1000.nc",
     "ws_verif":"/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_windspeed.nc",
     "forecast_ids": [
         "baseline",
-        "Hydrostatic-q50",
-        "Hydrostatic-q75",
-        "Hydrostatic-q95",
+        # "Hydrostatic-q50",
+        # "Hydrostatic-q75",
+        # "Hydrostatic-q95",
         "hydrostatic-v2"
     ],
     "forecast_colors": [
         "green",
-        "blue",
-        "orange",
-        "red",
+        # "blue",
+        # "orange",
+        # "red",
         "purple"
     ],
     "region": [40, 10, 360-90, 360-10],
