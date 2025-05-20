@@ -1,0 +1,7 @@
+# Ignore Python bytecode cache directories
+__pycache__/
+**/__pycache__/
+
+# Ignore any directory named 'analysis_output' and its contents
+analysis_output/
+**/analysis_output/
