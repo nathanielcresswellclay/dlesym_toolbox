@@ -212,6 +212,7 @@ def main(
     z1000_ticks,
     ws_ticks,
     output_dir,
+    output_file="hurricane_analysis.png"
 ):
 
     # make output directory if it doesn't exist
@@ -229,7 +230,7 @@ def main(
 
 
     # format hurricane track plot
-    ax[0].set_title("Hurricane Track")
+    ax[0].set_title("Tracks")
     ax[0].set_extent(plot_extent, crs=ccrs.PlateCarree())
     ax[0].coastlines()
 
@@ -283,24 +284,25 @@ def main(
     
     # style min z1000 plot 
     ax[1].set_xticks(xticks)
-    ax[1].set_xticklabels(xticks/(24*3.6e12))
-    ax[1].set_xlabel("Leadtime (days)")
+    print(xticks)
+    ax[1].set_xticklabels(int(xticks/(3.6e12)))
+    ax[1].set_xlabel("Leadtime (hours)")
     ax[1].set_yticks(z1000_ticks)
     ax[1].set_ylabel("$Z_{1000}$ (m)")
     ax[1].grid()
 
     # style max wind speed plot
     ax[2].set_xticks(xticks)
-    ax[2].set_xticklabels(xticks/(24*3.6e12))
+    ax[2].set_xticklabels(int(xticks/(3.6e12)))
     ax[2].set_yticks(ws_ticks)
-    ax[2].set_xlabel("Leadtime (days)")
+    ax[2].set_xlabel("Leadtime (hours)")
     ax[2].set_ylabel("Wind Speed (m/s)")
     ax[2].grid()
 
     # save the figure
     logger.info(f"Saving figure to {output_dir}/hurricane_analysis.png")
     # plt.tight_layout()
-    plt.savefig(f"{output_dir}/hurricane_analysis.png", dpi=300)
+    plt.savefig(f"{output_dir}/{output_file}", dpi=300)
 
 PARAMS_hydrostatic = {
     "forecast_files": [
@@ -336,6 +338,87 @@ PARAMS_hydrostatic = {
     "ws_ticks": np.arange(12, 33, 2),
     "output_dir": "/home/disk/brume/nacc/hydrostatic_model_eval/hurricane_track_hydrostatic",
 }
+PARAMS_april2018_winter_storm = {
+    "forecast_files": [
+        "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_256_128_128/forecast_60d_monthly.nc",
+        "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v2/forecast_60d_monthly.nc"
+    ],
+    "z1000_verif":"/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_z1000.nc",
+    "ws_verif":"/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_windspeed.nc",
+    "forecast_ids": [
+        "baseline",
+        "hydrostatic-v2"
+    ],
+    "forecast_colors": [
+        "green",
+        "purple"
+    ],
+    "region": [65, 25, 265, 325],
+    "module_dir":"/home/disk/brume/nacc/DLESyM",
+    "init_time": "2018-03-31T00:00:00",
+    "step_slice": slice(20,50),
+    "plot_extent": [-95, -35, 25, 65],
+    "xticks": np.arange(18*6*3.6e12, 52*6*3.6e12, 10*6*3.6e12),
+    "z1000_ticks": np.arange(-310,55,50),
+    "ws_ticks": np.arange(12, 33, 2),
+    "output_dir": "/home/disk/brume/nacc/hydrostatic_model_eval/april_2018_winter_storm",
+    "output_file": "extrema_april_2018_winter_storm.png"
+}
+PARAMS_march2018_winter_storm = {
+    "forecast_files": [
+        "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_256_128_128/forecast_60d_monthly.nc",
+        "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v2/forecast_60d_monthly.nc"
+    ],
+    "z1000_verif":"/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_z1000.nc",
+    "ws_verif":"/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_windspeed.nc",
+    "forecast_ids": [
+        "baseline",
+        "hydrostatic-v2"
+    ],
+    "forecast_colors": [
+        "green",
+        "purple"
+    ],
+    "region": [65, 25, 265, 325],
+    "module_dir":"/home/disk/brume/nacc/DLESyM",
+    "init_time": "2018-02-28T00:00:00",
+    "step_slice": slice(4,49),
+    "plot_extent": [-95, -35, 25, 65],
+    "xticks": np.arange(4*6*3.6e12, 45*6*3.6e12, 8*6*3.6e12),
+    "z1000_ticks": np.arange(-310,55,50),
+    "ws_ticks": np.arange(12, 33, 2),
+    "output_dir": "/home/disk/brume/nacc/hydrostatic_model_eval/march_2018_winter_storm",
+    "output_file": "extrema_march_2018_winter_storm.png"
+}
+
+PARAMS_30ch_hydrostatic = {
+    "forecast_files": [
+        '/home/disk/brass/nacc/forecasts/hydrostatic_models/hpx64_noncouple_dlwp_30ch_dbl_conv_nomask/forecast_60d_irma.nc',
+        '/home/disk/brass/nacc/forecasts/hydrostatic_models/hpx64_noncouple_dlwp_30ch_dbl_conv_nomask_hydrostatic_v3-2_q50/forecast_60d_irma.nc',
+    ],
+    "z1000_verif":"/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_z1000.nc",
+    "ws_verif":"/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_windspeed.nc",
+    "forecast_ids": [
+        "baseline-30ch",
+        "hydrostatic-q50-30ch",
+    ],
+    "forecast_colors": [
+        "green",
+        "purple"
+    ],
+    "region": [40, 10, 360-90, 360-10],
+    "module_dir":"/home/disk/brume/nacc/DLESyM",
+    "init_time": "2017-08-31T00:00:00",
+    "step_slice": slice(9,48),
+    "plot_extent": [-90, -30, 10, 50],
+    "xticks": np.arange(9*6*3.6e12, 48*6*3.6e12, 10*6*3.6e12),
+    "z1000_ticks": np.arange(-310,55,50),
+    "ws_ticks": np.arange(12, 33, 2),
+    "output_dir": "/home/disk/brume/nacc/hydrostatic_model_eval/hurricane_track_hydrostatic_30ch",
+}
 
 if __name__ == "__main__":
-    main(**PARAMS_hydrostatic)
+    # main(**PARAMS_hydrostatic)
+    # main(**PARAMS_april2018_winter_storm)
+    # main(**PARAMS_march2018_winter_storm)
+    main(**PARAMS_30ch_hydrostatic)

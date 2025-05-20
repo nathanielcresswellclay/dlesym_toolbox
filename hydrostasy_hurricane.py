@@ -3,6 +3,8 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
+import matplotlib.colors as mcolors
+import matplotlib.cm as cm
 from cartopy import crs as ccrs
 from cartopy import feature as cfeature
 from cartopy.util import add_cyclic_point
@@ -11,10 +13,27 @@ import sys
 from tqdm import tqdm
 from hurricane_track import initialize_evaluator
 
+def get_custom_cmap():
+    """
+    Create a custom colormap with white as the first color.
+    """
+    # Get the 'Reds' colormap
+    reds = cm.get_cmap('hot_r')
+
+    # Create a new colormap with white as the first color
+    new_colors = reds(np.linspace(0, 1, 256))
+    # for i in range(0,10): new_colors[i] = mcolors.to_rgba('whitesmoke')  # RGBA for white
+    new_cmap = mcolors.ListedColormap(new_colors)
+    return new_cmap
+
 # dictionaries calibrated for visualizing multiple fields in the same plot
 default_plot_fields = dict(
     t500=dict(color='black', verif='/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_t850.nc', levels=np.arange(6,-10,-2)[::-1], label="t500", conversion_func=lambda x:x-273.15 ), # still need to download vars from ERA5
     t250=dict(color='green', verif='/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_t850.nc', levels=np.arange(-30,-43,-2)[::-1], label="t250", conversion_func=lambda x:x-273.15 ), # still need to download vars from ERA5
+)
+fronts = dict(
+    t850=dict(color='coolwarm', verif='/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_t850.nc', pcolor_flag=True, vmin=-25,vmax=25, label="t850", conversion_func=lambda x:x-273.15 ), # still need to download vars from ERA5
+    z1000=dict(color='black', verif='/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_t850.nc', levels=np.arange(-3000.,3000,250), label="Z$_{1000}$", kwargs=dict(linewidths=.35)),
 )
 ws10m_z100_z700 = dict(
     ws10m=dict(color='hot_r', verif='/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_t850.nc', pcolor_flag=True, vmin=5,vmax=30, label="10m wind speed"),
@@ -26,13 +45,28 @@ ws10_z1000_z700 = dict(
     z1000=dict(color='black', verif='/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_t850.nc', levels=np.arange(-3000.,3000,250), label="Z$_{1000}$", kwargs=dict(linewidths=.35)),
     z700=dict(color='black', verif='/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_t850.nc', levels=np.arange(21440,32000,250), label="Z$_{700}$", kwargs=dict(linewidths=1.25)),
 )
+ws10_z1000_z850_midlat = dict(
+    ws10m=dict(color='hot_r', verif='/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_t850.nc', pcolor_flag=True, vmin=5,vmax=30, label="10m wind speed"),
+    z1000=dict(color='black', verif='/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_t850.nc', levels=np.arange(-3000.,3000,250), label="Z$_{1000}$", kwargs=dict(linewidths=.35)),
+    z850=dict(color='black', verif='/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_t850.nc', levels=np.arange(7880.,16000,250), label="Z$_{850}$", kwargs=dict(linewidths=1.25)),
+)
 z850_ws10_z250 = dict(
     ws10m=dict(color='hot_r', verif='/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_t850.nc', pcolor_flag=True, vmin=5,vmax=30, label="10m wind speed"),
     z850=dict(color='black', verif='/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_t850.nc', levels=np.arange(7880.,16000,250), label="Z$_{850}$", kwargs=dict(linewidths=.35)),
     z250=dict(color='black', verif='/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_t850.nc', levels=np.arange(107000.,110000.,250), label="Z$_{250}$", kwargs=dict(linewidths=1.25)),
 )
+tcwv_z1000_z850 = dict(
+    tcwv=dict(color='Blues', verif='/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_tcwv.nc', pcolor_flag=True, vmin=25,vmax=70, label="TCWV"),
+    z1000=dict(color='black', verif='/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_t850.nc', levels=np.arange(-3000.,3000,250), label="Z$_{1000}$", kwargs=dict(linewidths=.35)),
+    z850=dict(color='black', verif='/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_t850.nc', levels=np.arange(7880.,16000,250), label="Z$_{850}$", kwargs=dict(linewidths=1.25)),
+)
+irma_low_level = dict(
+    ws10m=dict(color=get_custom_cmap(), verif='/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_t850.nc', pcolor_flag=True, vmin=5,vmax=35, label="10m wind speed"),
+    z1000=dict(color='black', verif='/home/disk/rhodium/dlwp/data/era5/1deg/era5_1950-2022_3h_1deg_t850.nc', levels=np.arange(-3000.,3000,250), label="Z$_{1000}$", kwargs=dict(linewidths=.75)),
+)
 
-def hydrostasy_hurricane(forecast_file, plot_time, plot_steps, output_dir, module_path, plot_fields=default_plot_fields):
+
+def storm_frames(forecast_file, plot_time, plot_steps, output_dir, module_path, plot_fields=default_plot_fields, extent=[-85, -35, 12, 45]):
     """
     Plots overlapping fieds for evaluating hydrostatic coherence.
     Parameters
@@ -64,7 +98,7 @@ def hydrostasy_hurricane(forecast_file, plot_time, plot_steps, output_dir, modul
     # helper function to initialize plots 
     def init_frame():
         fig, ax = plt.subplots(1, 1, figsize=(10, 7), subplot_kw={'projection': ccrs.PlateCarree()})
-        ax.set_extent([-85, -35, 12, 45], crs=ccrs.PlateCarree())
+        ax.set_extent(extent, crs=ccrs.PlateCarree())
         ax.coastlines(color='grey', linewidth=0.5)
         return fig, ax
     
@@ -104,6 +138,7 @@ def hydrostasy_hurricane(forecast_file, plot_time, plot_steps, output_dir, modul
                 color_fills.append(colors)
                 color_fill_labels.append(plot_fields[plot_field]['label'])
             else:
+                
                 im = ax.contour(lon, forecast_das[j].lat, temp_field, 
                         levels=plot_fields[plot_field]['levels'],
                         colors=plot_fields[plot_field]['color'], 
@@ -122,17 +157,19 @@ def hydrostasy_hurricane(forecast_file, plot_time, plot_steps, output_dir, modul
         # add colorbar for pcolor plots
         if len(color_fills) > 0:
             for color_fill, color_fill_label in zip(color_fills, color_fill_labels):
-                cbar = plt.colorbar(color_fill, ax=ax, orientation='horizontal', pad=0.05, aspect=20, shrink=0.85)
+                cbar = plt.colorbar(color_fill, ax=ax, orientation='horizontal', pad=0.05, aspect=20, shrink=0.8)
                 cbar.set_label(color_fill_label, fontsize=15)
             cbar.ax.tick_params(labelsize=15)
 
         frame_name = f"forecast_step_{i:04d}.png"
         plt.savefig(os.path.join(output_dir, frame_name), dpi=300)
+        plt.savefig(os.path.join(output_dir, frame_name.replace('.png','.svg')), dpi=300)
         plt.close(fig)
 
         # clear variables to save memory
         del temp_field
         del lon
+
 
 ####### T500 + T250 #######
 PARAMS_hydrostat_v2_t500_t250 = {
@@ -200,18 +237,146 @@ PARAMS_hydrostat_baseline_z1000_ws10_z700 = {
     "module_path" : "/home/disk/brume/nacc/DLESyM_dev",
     "plot_fields" : ws10_z1000_z700,
 }
+###### Z1000 + WS10m +Z850
+########## Hurricane
+PARAMS_hydrostat_v2_irma_low_level = {
+    'forecast_file' : "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v2/forecast_60d_monthly.nc",
+    "plot_time" : "2017-08-31T00:00:00",
+    "plot_steps" : [40,],
+    "output_dir" : "/home/disk/brume/nacc/hydrostatic_model_eval/hurricane_track_hydrostatic/hydrostatic_frames_dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v2/irma_low_level/",
+    "module_path" : "/home/disk/brume/nacc/DLESyM_dev",
+    "plot_fields" : irma_low_level,
+}
+PARAMS_hydrostat_baseline_irma_low_level = {
+    'forecast_file' : "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_256_128_128/forecast_60d_monthly.nc",
+    "plot_time" : "2017-08-31T00:00:00",
+    "plot_steps" : [40,],
+    "output_dir" : "/home/disk/brume/nacc/hydrostatic_model_eval/hurricane_track_hydrostatic/hydrostatic_frames_dbl_conv_next_26ch_ws_256_128_128/irma_low_level/",
+    "module_path" : "/home/disk/brume/nacc/DLESyM_dev",
+    "plot_fields" : irma_low_level,
+}
+PARAMS_hydrostat_v2_z1000_tcwv_z850 = {
+    'forecast_file' : "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v2/forecast_60d_monthly.nc",
+    "plot_time" : "2017-08-31T00:00:00",
+    "plot_steps" : slice(0,48),
+    "output_dir" : "/home/disk/brume/nacc/hydrostatic_model_eval/hurricane_track_hydrostatic/hydrostatic_frames_dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v2/z1000_tcwv_z850/",
+    "module_path" : "/home/disk/brume/nacc/DLESyM_dev",
+    "plot_fields" : tcwv_z1000_z850,
+}
+PARAMS_hydrostat_baseline_z1000_tcwv_z850 = {
+    'forecast_file' : "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_256_128_128/forecast_60d_monthly.nc",
+    "plot_time" : "2017-08-31T00:00:00",
+    "plot_steps" : slice(0,48),
+    "output_dir" : "/home/disk/brume/nacc/hydrostatic_model_eval/hurricane_track_hydrostatic/hydrostatic_frames_dbl_conv_next_26ch_ws_256_128_128/z1000_tcwv_z850/",
+    "module_path" : "/home/disk/brume/nacc/DLESyM_dev",
+    "plot_fields" : tcwv_z1000_z850,
+}
+########## Winter storms
+#region
+PARAMS_hydrostat_v2_z1000_ws10_z850_april_2018 = {
+    'forecast_file' : "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v2/forecast_60d_monthly.nc",
+    "plot_time" : "2018-03-31T00:00:00",
+    "plot_steps" : slice(0,60),
+    "output_dir" : "/home/disk/brume/nacc/hydrostatic_model_eval/april_2018_winter_storm/hydrostatic_frames_dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v2/z1000_ws10_z850/",
+    "module_path" : "/home/disk/brume/nacc/DLESyM_dev",
+    "plot_fields" : ws10_z1000_z850_midlat,
+    'extent' : [-95, -40, 25, 65],
+}
+PARAMS_hydrostat_baseline_z1000_ws10_z850_april_2018 = {
+    'forecast_file' : "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_256_128_128/forecast_60d_monthly.nc",
+    "plot_time" : "2018-03-31T00:00:00",
+    "plot_steps" : slice(0,60),
+    "output_dir" : "/home/disk/brume/nacc/hydrostatic_model_eval/april_2018_winter_storm/hydrostatic_frames_dbl_conv_next_26ch_ws_256_128_128/z1000_ws10_z850/",
+    "module_path" : "/home/disk/brume/nacc/DLESyM_dev",
+    "plot_fields" : ws10_z1000_z850_midlat,
+    'extent' : [-95, -40, 25, 65],
+}
+PARAMS_hydrostat_v2_z1000_t850_april_2018 = {
+    'forecast_file' : "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v2/forecast_60d_monthly.nc",
+    "plot_time" : "2018-03-31T00:00:00",
+    "plot_steps" : slice(0,60),
+    "output_dir" : "/home/disk/brume/nacc/hydrostatic_model_eval/april_2018_winter_storm/hydrostatic_frames_dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v2/t850_z1000/",
+    "module_path" : "/home/disk/brume/nacc/DLESyM_dev",
+    "plot_fields" : fronts,
+    'extent' : [-95, -40, 25, 65],
+}
+PARAMS_hydrostat_baseline_z1000_z1000_t850_april_2018 = {
+    'forecast_file' : "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_256_128_128/forecast_60d_monthly.nc",
+    "plot_time" : "2018-03-31T00:00:00",
+    "plot_steps" : slice(0,60),
+    "output_dir" : "/home/disk/brume/nacc/hydrostatic_model_eval/april_2018_winter_storm/hydrostatic_frames_dbl_conv_next_26ch_ws_256_128_128/t850_z1000/",
+    "module_path" : "/home/disk/brume/nacc/DLESyM_dev",
+    "plot_fields" : fronts,
+    'extent' : [-95, -40, 25, 65],
+}
+PARAMS_hydrostat_v2_z1000_ws10_z850_march_2018 = {
+    'forecast_file' : "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v2/forecast_60d_monthly.nc",
+    "plot_time" : "2018-02-28T00:00:00",
+    "plot_steps" : slice(0,60),
+    "output_dir" : "/home/disk/brume/nacc/hydrostatic_model_eval/march_2018_winter_storm/hydrostatic_frames_dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v2/z1000_ws10_z850/",
+    "module_path" : "/home/disk/brume/nacc/DLESyM_dev",
+    "plot_fields" : ws10_z1000_z850_midlat,
+    'extent' : [-95, -40, 25, 65],
+}
+PARAMS_hydrostat_baseline_z1000_ws10_z850_march_2018 = {
+    'forecast_file' : "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_256_128_128/forecast_60d_monthly.nc",
+    "plot_time" : "2018-02-28T00:00:00",
+    "plot_steps" : slice(0,60),
+    "output_dir" : "/home/disk/brume/nacc/hydrostatic_model_eval/march_2018_winter_storm/hydrostatic_frames_dbl_conv_next_26ch_ws_256_128_128/z1000_ws10_z850/",
+    "module_path" : "/home/disk/brume/nacc/DLESyM_dev",
+    "plot_fields" : ws10_z1000_z850_midlat,
+    'extent' : [-95, -40, 25, 65],
+}
+PARAMS_hydrostat_v2_z1000_t850_march_2018 = {
+    'forecast_file' : "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v2/forecast_60d_monthly.nc",
+    "plot_time" : "2018-02-28T00:00:00",
+    "plot_steps" : slice(0,60),
+    "output_dir" : "/home/disk/brume/nacc/hydrostatic_model_eval/march_2018_winter_storm/hydrostatic_frames_dbl_conv_next_26ch_ws_hydrostatic_256_128_128_v2/t850_z1000/",
+    "module_path" : "/home/disk/brume/nacc/DLESyM_dev",
+    "plot_fields" : fronts,
+    'extent' : [-95, -40, 25, 65],
+}
+PARAMS_hydrostat_baseline_z1000_z1000_t850_march_2018 = {
+    'forecast_file' : "/home/disk/brass/nacc/forecasts/hydrostatic_models/dbl_conv_next_26ch_ws_256_128_128/forecast_60d_monthly.nc",
+    "plot_time" : "2018-02-28T00:00:00",
+    "plot_steps" : slice(0,60),
+    "output_dir" : "/home/disk/brume/nacc/hydrostatic_model_eval/march_2018_winter_storm/hydrostatic_frames_dbl_conv_next_26ch_ws_256_128_128/t850_z1000/",
+    "module_path" : "/home/disk/brume/nacc/DLESyM_dev",
+    "plot_fields" : fronts,
+    'extent' : [-95, -40, 25, 65],
+}
+#endregion
+###### Z1000 + TCWV +Z850
+
 
 if __name__ == "__main__":
-    # hydrostasy_hurricane(**PARAMS_hydrostat_v2_t500_t250)
-    # hydrostasy_hurricane(**PARAMS_hydrostat_baseline_t500_t250)
+    # storm_frames(**PARAMS_hydrostat_v2_t500_t250)
+    # storm_frames(**PARAMS_hydrostat_baseline_t500_t250)
 
-    # hydrostasy_hurricane(**PARAMS_hydrostat_v2_z850_ws850_z250)
-    # hydrostasy_hurricane(**PARAMS_hydrostat_baseline_z850_ws850_z250)
+    # storm_frames(**PARAMS_hydrostat_baseline_z850_ws850_z250)
+    # storm_frames(**PARAMS_hydrostat_v2_z850_ws850_z250)
 
-    # hydrostasy_hurricane(**PARAMS_hydrostat_v2_ws10_z100_z700)
-    # hydrostasy_hurricane(**PARAMS_hydrostat_baseline_ws10_z100_z700)
+    # storm_frames(**PARAMS_hydrostat_v2_ws10_z100_z700)
+    # storm_frames(**PARAMS_hydrostat_baseline_ws10_z100_z700)
 
-    # hydrostasy_hurricane(**PARAMS_hydrostat_v2_z1000_ws10_z700)
-    hydrostasy_hurricane(**PARAMS_hydrostat_baseline_z1000_ws10_z700)
+    # storm_frames(**PARAMS_hydrostat_v2_z1000_ws10_z700)
+    # storm_frames(**PARAMS_hydrostat_baseline_z1000_ws10_z700)
 
+    # # hurricane_tcwv
+    # storm_frames(**PARAMS_hydrostat_v2_z1000_tcwv_z850)
+    # storm_frames(**PARAMS_hydrostat_baseline_z1000_tcwv_z850)
+    # hurricane, low level
+    storm_frames(**PARAMS_hydrostat_v2_irma_low_level)
+    storm_frames(**PARAMS_hydrostat_baseline_irma_low_level)
+    # # winter storms 
+    # storm_frames(**PARAMS_hydrostat_v2_z1000_ws10_z850_april_2018)
+    # storm_frames(**PARAMS_hydrostat_baseline_z1000_ws10_z850_april_2018)
+    # storm_frames(**PARAMS_hydrostat_v2_z1000_ws10_z850_march_2018)
+    # storm_frames(**PARAMS_hydrostat_baseline_z1000_ws10_z850_march_2018)
+
+    # frontal analysis
+    # storm_frames(**PARAMS_hydrostat_v2_z1000_t850_april_2018)
+    # storm_frames(**PARAMS_hydrostat_baseline_z1000_z1000_t850_april_2018)
+    # storm_frames(**PARAMS_hydrostat_v2_z1000_t850_march_2018)
+    # storm_frames(**PARAMS_hydrostat_baseline_z1000_z1000_t850_march_2018)
 
