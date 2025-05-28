@@ -1,0 +1,33 @@
+experiment_name: dlesym-sm_analysis_test
+toolbox_dir: /pscratch/sd/n/nacc/dlesym_toolbox
+output_dir: /pscratch/sd/n/nacc/analysis_output/dlesym-sm_analysis_test
+gpus:
+  - 0
+  - 1
+  - 2
+  - 3
+
+analyses:
+  - name: skill scoring 60 day comparison
+    output_subdir: ${output_dir}/skill_score_60day_comparison_forced
+    inference_params:
+      experiment_name: skill_60day_comparison_forced
+      output_log: ${output_dir}/skill_score_60day_comparison_forced/inference.log
+      inference_script_path: /pscratch/sd/n/nacc/NV-dlesm_ncresswell/inference
+      mounted_modules:
+        - /pscratch/sd/n/nacc/modulus-uw-dltm
+        - /pscratch/sd/n/nacc/NV-dlesm_ncresswell
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+      output_file_suffix: _2017-2018.nc
+      forecast_init_start: 2016-06-30
+      forecast_init_end: 2017-05-01
+      models:
+        - /pscratch/sd/n/nacc/models/dlesym-ttr_sm
+        - /pscratch/sd/n/nacc/models/dlesym_modulus
+        - /pscratch/sd/n/nacc/models/dlesym-ttr
+      config_cache: /pscratch/sd/n/nacc/forced_skill_60_day_experiment_config_temp.yaml
+      overwrite_forecasts: True
+    analysis_parameters:
+      module: skill_score_60day
+      function: main
+
