@@ -12,6 +12,9 @@ def main(config_path: str):
     config = OmegaConf.load(config_path)
     log_file, logger = setup_logging(config.output_log)
 
+
+    logger.info("Loaded config:\n\n" + OmegaConf.to_yaml(config))  # prints the loaded YAML for clarity
+
     # initialize arg template
     # this template will be the base for calls to 
     # forecast_single_component.py. We're going to 
@@ -21,10 +24,10 @@ def main(config_path: str):
     arg_template = OmegaConf.create()
 
     # add common arguments to template 
-    arg_template.lead_time = 60*24 # leadtime in hours 
-    arg_template.forecast_init_start = config.forecast_init_start
-    arg_template.forecast_init_end = config.forecast_init_end
-    arg_template.freq = 'biweekly'
+    arg_template.lead_time = 30*24 # leadtime in hours 
+    arg_template.forecast_init_start = '2021-06-01T00:00:00' 
+    arg_template.forecast_init_end = '2021-06-17T00:00:00'
+    arg_template.freq = '1D'
     arg_template.gpu = 0
 
     # loop through models and add model-specific arguments
@@ -38,7 +41,7 @@ def main(config_path: str):
         # add model-specific arguments
         arg.model_path = model
         arg.output_directory = os.path.join(model, "forecasts")
-        arg.output_filename = "forecast_forced_60day" + config.output_file_suffix
+        arg.output_filename = "forecast_forced_pnw-heatwave2021"
         arg.data_directory = model_config.data.dst_directory
         arg.dataset_name = model_config.data.dataset_name
         arg.hydra_path = os.path.relpath(model, os.path.join(os.getcwd(), 'hydra'))
@@ -48,7 +51,6 @@ def main(config_path: str):
         arg.to_zarr = False
         arg.data_prefix = None
         arg.data_suffix = None
-        arg.gpu = 0 # gpu visibility handled by client routine
         arg.constant_dummy_scaling = False
 
         # add model inference arguments to list
@@ -89,7 +91,7 @@ if __name__ == "__main__":
 
     # receive arguments 
     import argparse
-    parser = argparse.ArgumentParser(description="Run 60day forced forecast comparison.")
+    parser = argparse.ArgumentParser(description="Run forecasts for 2021 pnw heatwave.")
     parser.add_argument("config", type=str, help="Path to the YAML configuration file")
     args = parser.parse_args()
 

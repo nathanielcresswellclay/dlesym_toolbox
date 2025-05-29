@@ -24,6 +24,14 @@ def _run_experiments_parallel(experiment_params, gpus):
     Experiments should be configured using analysis suite conventions
     """
 
+    # checks for parameters 
+    empty_config = False
+    for i, param in enumerate(experiment_params):
+        if param is None: 
+            empty_config = True
+            experiment_params.remove(param)
+    if empty_config: logger.warning("Analyses detected without associated inference.")
+
     queue = Queue()
     for config in experiment_params:
         queue.put(config)
@@ -77,6 +85,72 @@ def _run_experiments_parallel(experiment_params, gpus):
 
         time.sleep(5)
 
+def _run_analyses_parallel(analysis_params, n_proc):
+    """
+    This internal function runs analysis in parallel using specified number of processes.
+    Experiments should be configured using analysis suite conventions
+    """
+
+    # checks for parameters 
+    empty_config = False
+    for i, param in enumerate(analysis_params):
+        if param is None: 
+            empty_config = True
+            analysis_params.remove(param)
+    if empty_config: logger.warning("Analyses detected without associated inference.")
+
+    queue = Queue()
+    for config in analysis_params:
+        queue.put(config)
+
+    running = []  # List of tuples: (process, proc_idx, config_path)
+
+    while not queue.empty() or running:
+        # Remove completed processes
+        still_running = []
+        for p, proc_idx, config_path in running:
+            if p.poll() is None:
+                still_running.append((p, proc_idx, config_path))
+            else:
+                logger.info(f"Process {proc_idx} completed with return code: {p.returncode}")
+                try:
+                    os.remove(config_path)
+                    logger.debug(f"Deleted temporary config file: {config_path}")
+                except Exception as e:
+                    logger.warning(f"Failed to delete temp file {config_path}: {e}")
+        running = still_running
+
+        # Launch new processes if available subprocesses
+        available_subprocesses = n_proc - len(running)
+
+        for i in range(available_subprocesses):
+            if queue.empty():
+                break
+            # Get the next experiment config 
+            namespace_config = queue.get()
+            analysis_name = namespace_config.pop("analysis_name", None)
+            config_cache = namespace_config.pop("config_cache", None)
+            pythonpath_additions = namespace_config.pop("mounted_modules", None)
+            # Resolve interpolations before saving the config
+            resolved_dict = OmegaConf.to_container(namespace_config, resolve=True)
+            resolved_config = OmegaConf.create(resolved_dict)
+
+            # Save the resolved config
+            OmegaConf.save(config=resolved_config, f=config_cache)
+            
+            # set up the environment for the subprocess
+            env = dict(os.environ)
+            env["PYTHONPATH"] = os.pathsep.join(pythonpath_additions) + os.pathsep + env.get("PYTHONPATH", "")
+
+            # report location of log file
+            logger.info(f"Running analysis {analysis_name}. logging piped to {namespace_config.output_log}")
+
+            # run the experiment
+            p = subprocess.Popen(["python", analysis_name + '.py', config_cache], env=env)
+            running.append((p, i, config_cache))
+
+        time.sleep(5)
+
 def analysis_suite(config: str):
 
     # load the config file
@@ -98,27 +172,14 @@ def analysis_suite(config: str):
         inference_params.append(analysis.pop("inference_params", None))
     _run_experiments_parallel(inference_params, cfg.gpus)
 
-    exit()
-    # run each analyses in turn 
+    # similar to inference, we need to compile a list of parameters for analyses.
+    analysis_params = []
     for analysis in analyses_configs:
+        analysis_params.append(analysis.pop("analysis_params", None))
+    _run_analyses_parallel(analysis_params, cfg.n_proc)
 
-        # get info for importing the analysis function
-        analysis_name = analysis.pop("name")
-        module_name = analysis.pop("module")
-        function_name = analysis.pop("function")
-
-        # try to import the module and function
-        try:
-            sys.path.insert(0, cfg.toolbox_dir)
-            mod = importlib.import_module(f"{module_name}")
-            func = getattr(mod, function_name)
-            # get the name of the analysisand log
-            logger.info(f"Running analysis: {analysis_name}")
-            func(**analysis)
-        except (ImportError, AttributeError) as e:
-            logger.error(f"Failed to load analysis {module_name}.{function_name}: {e}")
-
-
+    # log completion
+    logger.info("All analyses completed.")
     return
 
 def main():
