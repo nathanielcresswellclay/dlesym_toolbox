@@ -1,0 +1,11 @@
+2025-05-30 05:37:58,785 | INFO | Loaded config:
+
+output_log: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/2003_heatwave_anomalies_forced/inference.log
+models:
+- /pscratch/sd/n/nacc/models/dlesym-ttr_sm
+- /pscratch/sd/n/nacc/models/dlesym-ttr
+overwrite_forecasts: false
+
+2025-05-30 05:38:06,116 | INFO | Forecast file /pscratch/sd/n/nacc/models/dlesym-ttr_sm/forecasts/forecast_forced_euro-heatwave2003.nc already exists for /pscratch/sd/n/nacc/models/dlesym-ttr_sm and overwrite_forecasts is set to False. Skipping forecast.
+2025-05-30 05:38:06,117 | INFO | Forecast file /pscratch/sd/n/nacc/models/dlesym-ttr/forecasts/forecast_forced_euro-heatwave2003.nc already exists for /pscratch/sd/n/nacc/models/dlesym-ttr and overwrite_forecasts is set to False. Skipping forecast.
+2025-05-30 05:38:06,117 | INFO | All forecasts completed successfully.

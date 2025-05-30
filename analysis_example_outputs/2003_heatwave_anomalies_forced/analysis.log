@@ -1,0 +1,26 @@
+2025-05-30 06:44:22,239 | INFO | Loaded config:
+
+output_log: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/2003_heatwave_anomalies_forced/analysis.log
+verification_file: /pscratch/sd/n/nacc/training_data/hpx64_1979-2021_3h_9Atmos-ttr_Coupled-sst-swvl1.zarr
+forecast_params:
+- file: /pscratch/sd/n/nacc/models/dlesym-ttr_sm/forecasts/forecast_forced_euro-heatwave2003.nc
+  model_id: dlesym-ttr_sm
+- file: /pscratch/sd/n/nacc/models/dlesym-ttr/forecasts/forecast_forced_euro-heatwave2003.nc
+  model_id: dlesym-ttr
+inits:
+- '2003-07-26'
+- '2003-08-01'
+- '2003-08-05'
+output_directory: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/2003_heatwave_anomalies_forced/
+
+<class 'omegaconf.dictconfig.DictConfig'>
+/pscratch/sd/n/nacc/dlesym_toolbox/euro_heatwave2003_anomalies.py:227: FutureWarning: 'H' is deprecated and will be removed in a future version, please use 'h' instead.
+  time=pd.date_range('2003-08-06', '2003-08-12', freq='6H'),
+2025-05-30 06:44:24,887 | INFO | Loading cached climatology from /pscratch/sd/n/nacc/training_data/hpx64_1979-2021_3h_9Atmos-ttr_Coupled-sst-swvl1_z500-clima.nc
+/pscratch/sd/n/nacc/dlesym_toolbox/euro_heatwave2003_anomalies.py:281: FutureWarning: In a future version of xarray decode_timedelta will default to False rather than None. To silence this warning, set decode_timedelta to True, False, or a 'CFTimedeltaCoder' instance.
+  fcst = xr.open_dataset(forecast.file).z500.sel(time=config.inits)
+2025-05-30 06:44:35,772 | INFO | Saved anomaly plot to /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/2003_heatwave_anomalies_forced//z500_anomaly_dlesym-ttr_sm.png
+/pscratch/sd/n/nacc/dlesym_toolbox/euro_heatwave2003_anomalies.py:281: FutureWarning: In a future version of xarray decode_timedelta will default to False rather than None. To silence this warning, set decode_timedelta to True, False, or a 'CFTimedeltaCoder' instance.
+  fcst = xr.open_dataset(forecast.file).z500.sel(time=config.inits)
+2025-05-30 06:44:45,530 | INFO | Saved anomaly plot to /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/2003_heatwave_anomalies_forced//z500_anomaly_dlesym-ttr.png
+2025-05-30 06:44:45,532 | INFO | Finished plotting anomalies for the 2003 heatwave in Europe.

@@ -170,16 +170,16 @@ def analysis_suite(config: str):
     inference_params = []
     for analysis in analyses_configs:
         inference_params.append(analysis.pop("inference_params", None))
-    _run_experiments_parallel(inference_params, cfg.gpus)
+    if cfg.pop("run_inference"): _run_experiments_parallel(inference_params, cfg.gpus)
 
     # similar to inference, we need to compile a list of parameters for analyses.
     analysis_params = []
     for analysis in analyses_configs:
         analysis_params.append(analysis.pop("analysis_params", None))
-    _run_analyses_parallel(analysis_params, cfg.n_proc)
+    if cfg.pop("run_analysis"): _run_analyses_parallel(analysis_params, cfg.n_proc)
 
     # log completion
-    logger.info("All analyses completed.")
+    logger.info("finished.")
     return
 
 def main():

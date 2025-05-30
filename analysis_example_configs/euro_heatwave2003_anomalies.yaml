@@ -1,0 +1,57 @@
+# General params 
+experiment_name: European Heatwave 2003
+toolbox_dir: /pscratch/sd/n/nacc/dlesym_toolbox
+output_dir: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs
+gpus:
+  - 0
+n_proc: 1
+run_inference: False
+run_analysis: True
+  
+# Heat wave analysis config item 
+analyses:
+  - name: anomalies for 2003 heatwave
+    output_subdir: ${output_dir}/2003_heatwave_anomalies_forced
+    # parameters used to run forecasts for analysis. experiment_name is 
+    # the name of the module in forecast_experiments/
+    inference_params:
+      experiment_name: euro_heatwave2003_forced_forecast
+      # logs and std outputs for inference are saved here
+      output_log: ${output_dir}/2003_heatwave_anomalies_forced/inference.log
+      # added to python path for inference
+      mounted_modules:
+        - /pscratch/sd/n/nacc/modulus-uw-dltm
+        - /pscratch/sd/n/nacc/NV-dlesm_ncresswell
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+      models:
+        - /pscratch/sd/n/nacc/models/dlesym-ttr_sm
+        - /pscratch/sd/n/nacc/models/dlesym-ttr
+        # config is temporary for launching subprocesses
+      config_cache: ${output_dir}/forced_euro_heatwave_experiment_config_temp.yaml
+      overwrite_forecasts: False
+    analysis_params:
+      # name of analysis module 
+      analysis_name: euro_heatwave2003_anomalies
+      # logs and std outputs for inference are saved here
+      output_log: ${output_dir}/2003_heatwave_anomalies_forced/analysis.log
+      # added to python path for analysis
+      mounted_modules:
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+        - /pscratch/sd/n/nacc/DLESyM
+      # verification data for analysis
+      verification_file: /pscratch/sd/n/nacc/training_data/hpx64_1979-2021_3h_9Atmos-ttr_Coupled-sst-swvl1.zarr
+      # parameters specific to each forecast, IDs are used to name output plots
+      forecast_params:
+        - file: /pscratch/sd/n/nacc/models/dlesym-ttr_sm/forecasts/forecast_forced_euro-heatwave2003.nc
+          model_id: dlesym-ttr_sm
+        - file: /pscratch/sd/n/nacc/models/dlesym-ttr/forecasts/forecast_forced_euro-heatwave2003.nc
+          model_id: dlesym-ttr
+      # initialization to be plotted, should work for any length input
+      inits:
+        - 2003-07-26
+        - 2003-08-01
+        - 2003-08-05
+      # plots go here
+      output_directory: ${output_dir}/2003_heatwave_anomalies_forced/
+      # another temporary config for launching subprocesses
+      config_cache: /pscratch/sd/n/nacc/forced_euro_heatwave_analysis_config_temp.yaml
