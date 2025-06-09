@@ -34,7 +34,7 @@ def main(config_path: str):
     logger.info("Loaded config:\n\n" + OmegaConf.to_yaml(config))  # prints the loaded YAML for clarity
 
     print(type(config))
-    # _plot_t2m_anoms(config, logger)
+    _plot_t2m_anoms(config, logger)
     _plot_z500_anoms(config, logger)
     logger.info("Finished plotting anomalies for the 2003 heatwave in Europe.")
 

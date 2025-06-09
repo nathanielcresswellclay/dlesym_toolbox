@@ -8,6 +8,10 @@ from toolbox_utils import setup_logging
 
 def main(config_path: str):
 
+    """
+    This script runs skill score comparison between different forecast models
+    """
+
     # load the config file
     config = OmegaConf.load(config_path)
     log_file, logger = setup_logging(config.output_log)
