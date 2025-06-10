@@ -1,0 +1,27 @@
+2025-06-10 18:39:21,203 | INFO | Loaded config:
+
+output_log: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/2010_heatwave_anomalies_2component/analysis.log
+verification_file: /pscratch/sd/n/nacc/training_data/hpx64_1979-2021_3h_9Atmos-ttr_Coupled-sst-swvl1.zarr
+forecast_params:
+- file: /pscratch/sd/n/nacc/models/dlesym-ttr+dlom-ttr/forecasts/atmos_forecast_coupled_euro-heatwave2010.nc
+  model_id: dlesym-ttr_sm
+inits:
+- '2010-07-10'
+- '2010-07-17'
+- '2010-07-24'
+output_directory: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/2010_heatwave_anomalies_2component/
+
+<class 'omegaconf.dictconfig.DictConfig'>
+/pscratch/sd/n/nacc/dlesym_toolbox/euro_heatwave2010_anomalies.py:82: FutureWarning: 'H' is deprecated and will be removed in a future version, please use 'h' instead.
+  time=pd.date_range('2010-07-25', '2010-08-08', freq='6H'),
+2025-06-10 18:39:25,092 | INFO | Loading cached climatology from /pscratch/sd/n/nacc/training_data/hpx64_1979-2021_3h_9Atmos-ttr_Coupled-sst-swvl1_t2m0-clima.nc
+/pscratch/sd/n/nacc/dlesym_toolbox/euro_heatwave2010_anomalies.py:136: FutureWarning: In a future version of xarray decode_timedelta will default to False rather than None. To silence this warning, set decode_timedelta to True, False, or a 'CFTimedeltaCoder' instance.
+  fcst = xr.open_dataset(forecast.file).t2m0.sel(time=config.inits)
+2025-06-10 18:39:40,280 | INFO | Saved anomaly plot to /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/2010_heatwave_anomalies_2component//t2m0_anomaly_dlesym-ttr_sm.png
+/pscratch/sd/n/nacc/dlesym_toolbox/euro_heatwave2010_anomalies.py:227: FutureWarning: 'H' is deprecated and will be removed in a future version, please use 'h' instead.
+  time=pd.date_range('2010-07-25', '2010-08-08', freq='6H'),
+2025-06-10 18:39:40,378 | INFO | Loading cached climatology from /pscratch/sd/n/nacc/training_data/hpx64_1979-2021_3h_9Atmos-ttr_Coupled-sst-swvl1_z500-clima.nc
+/pscratch/sd/n/nacc/dlesym_toolbox/euro_heatwave2010_anomalies.py:281: FutureWarning: In a future version of xarray decode_timedelta will default to False rather than None. To silence this warning, set decode_timedelta to True, False, or a 'CFTimedeltaCoder' instance.
+  fcst = xr.open_dataset(forecast.file).z500.sel(time=config.inits)
+2025-06-10 18:39:48,518 | INFO | Saved anomaly plot to /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/2010_heatwave_anomalies_2component//z500_anomaly_dlesym-ttr_sm.png
+2025-06-10 18:39:48,518 | INFO | Finished plotting anomalies for the 2010 heatwave in Europe.

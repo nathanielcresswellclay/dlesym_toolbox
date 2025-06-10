@@ -1,0 +1,66 @@
+# General params 
+experiment_name: European Heatwave 2010, Coupled Simulation
+toolbox_dir: /pscratch/sd/n/nacc/dlesym_toolbox
+output_dir: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs
+gpus:
+  - 0
+n_proc: 1
+run_inference: True
+run_analysis: True
+  
+# Heat wave analysis config item 
+analyses:
+  - name: anomalies for 2010 heatwave, 2-component coupled simulation 
+    output_subdir: ${output_dir}/2010_heatwave_anomalies_2component
+    # parameters used to run forecasts for analysis. experiment_name is 
+    # the name of the module in forecast_experiments/
+    inference_params:
+      experiment_name: euro_heatwave2010_2component_forecast
+      # logs and std outputs for inference are saved here
+      output_log: ${output_dir}/2010_heatwave_anomalies_2component/inference.log
+      # added to python path for inference
+      mounted_modules:
+        - /pscratch/sd/n/nacc/modulus-uw-dltm
+        - /pscratch/sd/n/nacc/NV-dlesm_ncresswell
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+      # models used for inference, atmos and ocean
+      atmos_models:
+        - /pscratch/sd/n/nacc/models/dlesym-ttr
+      ocean_models:
+        - /pscratch/sd/n/nacc/models/dlom-ttr
+      # currently only supported options are "ordered" and "melange". 
+      # 'ordered' ensures first atmos model is coupled to the first ocean model,
+      # the second atmos model to the second ocean model, etc.
+      # 'melange' means that each atmos model is coupled to each ocean model
+      # and so there are n_atmos * n_ocean forecasts
+      coupling_organization: ordered
+      # config is temporary for launching subprocesses
+      config_cache: ${output_dir}/2component_euro_heatwave2010_experiment_config_temp.yaml
+      # path to atmosphere initization file
+      atmos_data_path: /pscratch/sd/n/nacc/training_data/hpx64_1979-2021_3h_9Atmos-ttr_Coupled-sst-swvl1
+      ocean_data_path: /pscratch/sd/n/nacc/training_data/hpx64_1983-2017_3h_1varCoupledOcean-z1000-ws10-ttr
+      overwrite_forecasts: False
+    analysis_params:
+      # name of analysis module 
+      analysis_name: euro_heatwave2010_anomalies
+      # logs and std outputs for inference are saved here
+      output_log: ${output_dir}/2010_heatwave_anomalies_2component/analysis.log
+      # added to python path for analysis
+      mounted_modules:
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+        - /pscratch/sd/n/nacc/DLESyM
+      # verification data for analysis
+      verification_file: /pscratch/sd/n/nacc/training_data/hpx64_1979-2021_3h_9Atmos-ttr_Coupled-sst-swvl1.zarr
+      # parameters specific to each forecast, IDs are used to name output plots
+      forecast_params:
+        - file: /pscratch/sd/n/nacc/models/dlesym-ttr+dlom-ttr/forecasts/atmos_forecast_coupled_euro-heatwave2010.nc 
+          model_id: dlesym-ttr_sm
+      # initialization to be plotted, should work for any length input
+      inits:
+        - 2010-07-10
+        - 2010-07-17
+        - 2010-07-24
+      # plots go here
+      output_directory: ${output_dir}/2010_heatwave_anomalies_2component/
+      # another temporary config for launching subprocesses
+      config_cache: ${output_dir}/2component_euro_heatwave2010_analysis_config_temp.yaml

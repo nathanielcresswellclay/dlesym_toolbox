@@ -1,0 +1,15 @@
+2025-06-10 18:38:43,932 | INFO | Loaded config:
+
+output_log: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/2010_heatwave_anomalies_2component/inference.log
+atmos_models:
+- /pscratch/sd/n/nacc/models/dlesym-ttr
+ocean_models:
+- /pscratch/sd/n/nacc/models/dlom-ttr
+coupling_organization: ordered
+atmos_data_path: /pscratch/sd/n/nacc/training_data/hpx64_1979-2021_3h_9Atmos-ttr_Coupled-sst-swvl1
+ocean_data_path: /pscratch/sd/n/nacc/training_data/hpx64_1983-2017_3h_1varCoupledOcean-z1000-ws10-ttr
+overwrite_forecasts: false
+
+2025-06-10 18:38:43,997 | INFO | Importing coupled inference function...
+2025-06-10 18:39:10,680 | INFO | Forecast files /pscratch/sd/n/nacc/models/dlesym-ttr+dlom-ttr/forecasts/atmos_forecast_coupled_euro-heatwave2010.nc and /pscratch/sd/n/nacc/models/dlesym-ttr+dlom-ttr/forecasts/ocean_forecast_coupled_euro-heatwave2010.nc already exist for overwrite_forecasts is set to False. Skipping forecast.
+2025-06-10 18:39:10,680 | INFO | All forecasts completed.

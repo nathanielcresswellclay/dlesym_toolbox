@@ -1,0 +1,62 @@
+2025-06-09 22:06:22,084 | INFO | Loaded config:
+
+output_log: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/2010_heatwave_anomalies_forced/analysis.log
+verification_file: /pscratch/sd/n/nacc/training_data/hpx64_1979-2021_3h_9Atmos-ttr_Coupled-sst-swvl1.zarr
+forecast_params:
+- file: /pscratch/sd/n/nacc/models/dlesym-ttr_sm/forecasts/forecast_forced_euro-heatwave2010.nc
+  model_id: dlesym-ttr_sm
+- file: /pscratch/sd/n/nacc/models/dlesym-ttr/forecasts/forecast_forced_euro-heatwave2010.nc
+  model_id: dlesym-ttr
+inits:
+- '2010-07-10'
+- '2010-07-17'
+- '2010-07-24'
+output_directory: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/2010_heatwave_anomalies_forced/
+
+<class 'omegaconf.dictconfig.DictConfig'>
+Traceback (most recent call last):
+  File "/pscratch/sd/n/nacc/dlesym_toolbox/euro_heatwave2010_anomalies.py", line 368, in <module>
+    main(args.config)
+  File "/pscratch/sd/n/nacc/dlesym_toolbox/euro_heatwave2010_anomalies.py", line 37, in main
+    _plot_t2m_anoms(config, logger)
+  File "/pscratch/sd/n/nacc/dlesym_toolbox/euro_heatwave2010_anomalies.py", line 74, in _plot_t2m_anoms
+    import data_processing.remap.healpix as hpx 
+  File "/pscratch/sd/n/nacc/DLESyM/data_processing/remap/__init__.py", line 11, in <module>
+    from .healpix import HEALPixRemap
+  File "/pscratch/sd/n/nacc/DLESyM/data_processing/remap/healpix.py", line 34, in <module>
+    import reproject as rp
+  File "/pscratch/sd/n/nacc/miniconda/envs/dltm_analysis/lib/python3.10/site-packages/reproject/__init__.py", line 5, in <module>
+    from .adaptive import reproject_adaptive  # noqa
+  File "/pscratch/sd/n/nacc/miniconda/envs/dltm_analysis/lib/python3.10/site-packages/reproject/adaptive/__init__.py", line 1, in <module>
+    from .high_level import reproject_adaptive  # noqa
+  File "/pscratch/sd/n/nacc/miniconda/envs/dltm_analysis/lib/python3.10/site-packages/reproject/adaptive/high_level.py", line 3, in <module>
+    from ..utils import parse_input_data, parse_output_projection
+  File "/pscratch/sd/n/nacc/miniconda/envs/dltm_analysis/lib/python3.10/site-packages/reproject/utils.py", line 5, in <module>
+    import astropy.nddata
+  File "/pscratch/sd/n/nacc/miniconda/envs/dltm_analysis/lib/python3.10/site-packages/astropy/nddata/__init__.py", line 14, in <module>
+    from .blocks import *
+  File "/pscratch/sd/n/nacc/miniconda/envs/dltm_analysis/lib/python3.10/site-packages/astropy/nddata/blocks.py", line 8, in <module>
+    from .decorators import support_nddata
+  File "/pscratch/sd/n/nacc/miniconda/envs/dltm_analysis/lib/python3.10/site-packages/astropy/nddata/decorators.py", line 12, in <module>
+    from .nddata import NDData
+  File "/pscratch/sd/n/nacc/miniconda/envs/dltm_analysis/lib/python3.10/site-packages/astropy/nddata/nddata.py", line 21, in <module>
+    import dask.array as da
+  File "/pscratch/sd/n/nacc/miniconda/envs/dltm_analysis/lib/python3.10/site-packages/dask/array/__init__.py", line 355, in <module>
+    from dask.array import backends, fft, lib, linalg, ma, overlap, random
+  File "/pscratch/sd/n/nacc/miniconda/envs/dltm_analysis/lib/python3.10/site-packages/dask/array/backends.py", line 8, in <module>
+    from dask.array.core import Array
+  File "/pscratch/sd/n/nacc/miniconda/envs/dltm_analysis/lib/python3.10/site-packages/dask/array/core.py", line 39, in <module>
+    from dask.array.chunk_types import is_valid_array_chunk, is_valid_chunk_type
+  File "/pscratch/sd/n/nacc/miniconda/envs/dltm_analysis/lib/python3.10/site-packages/dask/array/chunk_types.py", line 110, in <module>
+    import cupy
+  File "/usr/local/lib/python3.10/dist-packages/cupy/__init__.py", line 17, in <module>
+    from cupy import _core  # NOQA
+  File "/usr/local/lib/python3.10/dist-packages/cupy/_core/__init__.py", line 3, in <module>
+    from cupy._core import core  # NOQA
+  File "cupy/_core/core.pyx", line 1, in init cupy._core.core
+  File "/usr/local/lib/python3.10/dist-packages/cupy/cuda/__init__.py", line 8, in <module>
+    from cupy.cuda import compiler  # NOQA
+  File "/usr/local/lib/python3.10/dist-packages/cupy/cuda/compiler.py", line 18, in <module>
+    from cupy_backends.cuda.libs import nvrtc
+  File "<frozen importlib._bootstrap>", line 404, in parent
+KeyboardInterrupt
