@@ -3,6 +3,7 @@ import sys
 import time
 import logging
 import warnings
+from dataclasses import dataclass
 
 # analysis
 import numpy as np
@@ -21,6 +22,12 @@ from cartopy.util import add_cyclic_point
 # mounted modules 
 from toolbox_utils import setup_logging
 
+# useful for manipulating omega conf configs 
+@dataclass
+class ForecastParam:
+    file: str
+    model_id: str
+
 def main(config_path: str):
 
     """
@@ -33,22 +40,44 @@ def main(config_path: str):
     _, logger = setup_logging(config.output_log)
 
     logger.info("Loaded config:\n\n" + OmegaConf.to_yaml(config))  # prints the loaded YAML for clarity
+    
+    # formats config to run with _plot_ndvi_climo
+    config.forecast_params = _prepare_forecast_params(config)
 
-    print(type(config))
-    _plot_sm_climo(config, logger)
-    logger.info("Finished plotting climatology for Soil Moisture.")
+    _plot_ndvi_climo(config, logger)
+    logger.info("Finished plotting climatology for NDVI.")
 
+def _prepare_forecast_params(config: DictConfig):
+
+    # helper func to get epoch
+    def _get_epoch(filename: str):
+        return filename.split('-')[-3]  # get the second to last part of the path
+
+    # get list of filepaths in the forecast directory
+    forecast_files = [
+        os.path.join(config.forecast_directory, f)
+        for f in os.listdir(config.forecast_directory)
+        if f.endswith('.nc') and 'forecast_forced' in f
+    ]
+    # get file IDs from the filenames
+    forecast_ids = [
+        f"epoch-{_get_epoch(f)}"
+        for f in forecast_files
+    ]
+    return [
+        ForecastParam(file=fcst_file, model_id=fcst_id)
+        for fcst_file, fcst_id in zip(forecast_files, forecast_ids)
+    ]
 
 # colormap with white as the middle color, coolwarm base
-def _get_custom_cmap_blues():
+def _get_custom_cmap_brbg():
     """
     Create a custom colormap with white as the first color.
     """
     # Get the 'coolwarm' colormap
-    bwr = cm.get_cmap('Blues')
+    bwr = cm.get_cmap('BrBG')
     # Create a new colormap with white as the middle color
     new_colors = bwr(np.linspace(0, 1, 256))
-    for i in range(0,30): new_colors[i] = mcolors.to_rgba('whitesmoke')  # RGBA for white
     new_cmap = mcolors.ListedColormap(new_colors)
     return new_cmap
 
@@ -83,14 +112,14 @@ def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str):
         im = ax.contourf(
             lon_cyclic, data_ll.lat, data_ll_cyclic,
             transform=ccrs.PlateCarree(),
-            cmap=_get_custom_cmap_blues(),
-            levels=np.arange(0, .801, 0.05),
+            cmap=_get_custom_cmap_brbg(),
+            levels=np.arange(-.25, 1.0, 0.05),
             extend='both',
         )
 
         # add colorbar
         cbar = plt.colorbar(im, ax=ax, orientation='horizontal', pad=0.05, shrink=0.6)
-        cbar.set_label('Soil Moisture (m$^3$m$^{-3}$)', fontsize=12)
+        cbar.set_label('NDVI', fontsize=12)
         # title and save the figure
         plt.title(f"{season}", fontsize=15)
         plt.savefig(f"{output_file_prefix}_{season}.png", dpi=300, bbox_inches='tight')
@@ -98,9 +127,9 @@ def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str):
 
     return
 
-def _plot_sm_climo(config: DictConfig , logger: logging.Logger):
-    
-    # try to import remap module from DLESyM 
+def _plot_ndvi_climo(config: DictConfig , logger: logging.Logger):
+
+    # try to import remap module from DLESyM
     # NOTE there are some brittle dependencies to get remap to work properly
     # for environment recipe: https://github.com/AtmosSci-DLESM/DLESyM/blob/main/environments/dlesym-0.1.yaml
     try: 
@@ -111,14 +140,14 @@ def _plot_sm_climo(config: DictConfig , logger: logging.Logger):
         return  
 
     # next we need to get the climatology of verif data for comparison
-    climatology_file = config.verification_file.replace('.zarr', '_swvl1-clima.nc')
+    climatology_file = config.verification_file.replace('.zarr', '_ndvi-clima.nc')
     if os.path.exists(climatology_file):
         logger.info(f"Loading cached climatology from {climatology_file}")
         climatology = xr.open_dataset(climatology_file).targets
     else:
-        logger.info("Calculating climatology for the heatwave period")
+        logger.info("Calculating climatology NDVI_gapfill from verification data")
         climatology = xr.open_zarr(config.verification_file).targets.sel(
-            channel_out="swvl1"
+            channel_out="NDVI_gapfill",
         ).groupby('time.dayofyear').mean(dim='time')
         climatology.to_netcdf(climatology_file)
         logger.info(f"Climatology saved to {climatology_file}")
@@ -145,12 +174,12 @@ def _plot_sm_climo(config: DictConfig , logger: logging.Logger):
     for forecast in config.forecast_params: 
 
         # check if cache for climo exists, if not calculate it
-        fcst_climatology_file = forecast.file.replace('.nc', '_swvl1-clima.nc')
+        fcst_climatology_file = forecast.file.replace('.nc', '_ndvi-clima.nc')
         if not os.path.exists(fcst_climatology_file):
 
             logger.info(f"Calculating climatology for {forecast.file} and caching to {fcst_climatology_file}")
             # open the forecast file
-            fcst = xr.open_dataset(forecast.file).swvl1
+            fcst = xr.open_dataset(forecast.file).NDVI_gapfill
             # resolve the step dimension into valid time
             valid_time = fcst.time.values + fcst.step.values
             fcst = fcst.assign_coords({'step': valid_time})
@@ -164,7 +193,7 @@ def _plot_sm_climo(config: DictConfig , logger: logging.Logger):
         
         # load the forecast climatology
         logger.info(f"Loading cached climatology from {fcst_climatology_file}")
-        fcst_climatology = xr.open_dataset(fcst_climatology_file).swvl1  
+        fcst_climatology = xr.open_dataset(fcst_climatology_file).NDVI_gapfill  
         # average climo into seasons: DJF, MAM, JJA, SON from day of year values
         fcst_climatology = fcst_climatology.assign_coords(dayofyear = pd.date_range('2000-01-01', '2000-12-31', freq='D')).groupby('dayofyear.season').mean(dim='dayofyear')
         # plot seasons from forecast climatology
@@ -180,7 +209,7 @@ if __name__ == "__main__":
 
     # receive arguments 
     import argparse
-    parser = argparse.ArgumentParser(description="Plot climatology of soil moisture during the 2003 heatwave in Europe.")
+    parser = argparse.ArgumentParser(description="Plot climatology of NDVI over historical run.")
     parser.add_argument("config", type=str, help="Path to the YAML configuration file")
     args = parser.parse_args()
 
