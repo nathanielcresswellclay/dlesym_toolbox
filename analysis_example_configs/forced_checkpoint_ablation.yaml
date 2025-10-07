@@ -1,0 +1,66 @@
+# Examples of various uses of skill score comparison. Here the analysis routine 
+# is consistent, but we forcast using models in coupled and forced modes as well 
+# as showing the versatility of the skill scoring routine
+
+
+
+experiment_name: checkpoint ablation
+toolbox_dir: /pscratch/sd/n/nacc/dlesym_toolbox
+output_dir: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs
+gpus:
+  - 0
+n_proc: 1
+run_inference: False
+run_analysis: True
+
+analyses:
+# Scoring for a 60 day forced simulation in the atmosphere 
+  - name: 60 day forced simulation for checkpoint ablation
+    output_subdir: ${output_dir}/forced_simulation_checkpoint_ablation
+    inference_params:
+      experiment_name: forced_checkpoint_ablation_inference
+      output_log: ${output_dir}/forced_simulation_checkpoint_ablation/inference.log
+      mounted_modules:
+        - /pscratch/sd/n/nacc/modulus-uw-dltm
+        - /pscratch/sd/n/nacc/NV-dlesm_ncresswell
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+      forecast_init_start: 2016-06-30
+      forecast_init_end: 2017-05-01
+      model: /pscratch/sd/n/nacc/models/dlesym-ttr_sm
+      # Checkpoint to use. Null will use all checkpoints
+      # checkpoints: Null
+      # Checkpoint lists for specific checkpoints
+      checkpoints: 
+        - training-state-last.mdlus
+      #   - training-state-epoch-0249-val_loss=1.2810E-03.mdlus
+      config_cache: ${output_dir}/forced_skill_60_day_checkpoint-ablation.yaml
+      overwrite_forecasts: False
+    analysis_params:
+      analysis_name: forced_checkpoint_ablation
+      output_log: ${output_dir}/forced_simulation_checkpoint_ablation/analysis.log
+      mounted_modules:
+        - /pscratch/sd/n/nacc/NV-dlesm_sharpness
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+      verification_file: /pscratch/sd/n/nacc/training_data/hpx64_1979-2021_3h_9Atmos-ttr_Coupled-sst-swvl1.zarr
+      model_path: /pscratch/sd/n/nacc/models/dlesym-ttr_sm
+      # Checkpoint to use. Null will analyze all checkpoint forecasts
+      checkpoints: Null
+      # Checkpoint lists must include full paths to the checkpoint files
+      # checkpoints: 
+      #   - training-state-last.mdlus
+      #   - training-state-epoch-0249-val_loss=1.2810E-03.mdlus
+      variables:
+        - z500
+      output_directory: ${output_dir}/forced_simulation_checkpoint_ablation
+      plot_file_suffix: forced_checkpoint_ablation
+      config_cache: ${output_dir}/forced_skill_60_day_checkpoint-ablation.yaml
+      overwrite_cache: False
+      xlim: 
+        left: 0 
+        right: 60
+      # ylims for the RMSE plot, optional
+      rmse_ylim: 
+        top: 130
+        bottom: 0.0
+      # prefix for the climatology cache, optional 
+      climo_cache_prefix: /pscratch/sd/n/nacc/models/climo/forecasts/climo_fcst_60d_z500
