@@ -46,7 +46,7 @@ def main(config_path: str):
         arg.output_directory = os.path.join(model, "forecasts")
         arg.output_filename = f"forecast_forced_historical_{config.init_time.replace('-','.')}-{config.end_time.replace('-','.')}"
         arg.data_directory = model_config.data.dst_directory
-        arg.dataset_name = model_config.data.dataset_name
+        arg.dataset_name = model_config.data.dataset_name if 'init_dataset' not in config.keys() else config.init_dataset
         arg.hydra_path = os.path.relpath(model, os.path.join(os.getcwd(), 'hydra'))
         arg.model_checkpoint = None
         arg.batch_size = None

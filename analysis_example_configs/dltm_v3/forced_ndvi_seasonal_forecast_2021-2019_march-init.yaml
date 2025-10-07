@@ -1,0 +1,77 @@
+# General params 
+experiment_name: NDVI Seasonal Forecast
+toolbox_dir: /pscratch/sd/n/nacc/dlesym_toolbox
+output_dir: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/dltm_v3-ndvi
+gpus:
+  - 0
+  - 1 
+  - 2
+  - 3
+n_proc: 4
+run_inference: False
+run_analysis: True
+  
+# Seasonal forecast lead-lag ensemble analysis
+analyses:
+  - name: 2019 Forced Seasonal NDVI Forecast with Precip March start
+    output_subdir: ${output_dir}/seasonal_forecasts/2019_with-precip_march-start
+    # parameters used to run forecasts for analysis. experiment_name is 
+    # the name of the module in forecast_experiments/
+    inference_params:
+      experiment_name: forced_lead-lag_ensemble
+      # logs and std outputs for inference are saved here
+      output_log: ${output_dir}/seasonal_forecasts/2019_with-precip_march-start/inference.log
+      # added to python path for inference
+      mounted_modules:
+        - /pscratch/sd/n/nacc/modulus-uw-dltm
+        - /pscratch/sd/n/nacc/NV-dlesm_ncresswell
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+      model: /pscratch/sd/n/nacc/models/dltm_v3-ndvi
+      # Time parameters for initializing lead-lag ensemble forecasts
+      init_time_start: 2019-03-01
+      init_time_end: 2019-03-16
+      init_time_freq: 1D
+      # suffix for output forecast file
+      filename_suffix: summer2019_march-start
+      # config is temporary for launching subprocesses
+      config_cache: ${output_dir}/seasonal_forecasts/2019_with-precip_march-start/2019_16members.yaml
+      overwrite_forecasts: False
+    analysis_params:
+      # name of analysis module 
+      analysis_name: regional_average_ndvi_seasonal_forecast_lead-lag
+      # logs and std outputs for inference are saved here
+      output_log: ${output_dir}/seasonal_forecasts/2019_with-precip_march-start/analysis.log
+      # added to python path for analysis
+      mounted_modules:
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+        - /pscratch/sd/n/nacc/DLESyM
+      # verification data for analysis
+      verification_file: /pscratch/sd/n/nacc/training_data/hpx64_2000-2021_3h_dltm-v3.zarr
+      # whether or not to plot climatological cycle 
+      plot_climatology: True
+      # regional box over which to calculate average NDVI
+      region_box:
+        west: -100.0
+        east: -80.0
+        south: 35.0
+        north: 45.0
+      # whether or not to plot map with region 
+      plot_region_map: False
+      # output directory for analysis plots
+      output_directory: ${output_dir}/seasonal_forecasts/2019_with-precip_march-start/
+      # path to forecast_file
+      forecast: /pscratch/sd/n/nacc/models/dltm_v3-ndvi/forecasts/forecast_forced_summer2019_march-start.nc
+      # times over which to plot
+      plot_time_start: 2019-03-01
+      plot_time_end: 2019-12-01
+      # indicate whether to plot ensemble mean or individual members
+      plot_ensemble_mean: False
+      # bias cache 
+      # bias_cache: /pscratch/sd/n/nacc/models/dltm_v3-ndvi/forecasts/2019_summer_bias-reforecasts/bias_cache.nc
+      # figure params 
+      figure_params:
+        title: "Regional Average NDVI"
+        savefig_params:
+          dpi: 300
+      # another temporary config for launching subprocesses
+      config_cache: ${output_dir}/seasonal_forecasts/2019_with-precip_march-start/2019_16members_analysis.yaml
