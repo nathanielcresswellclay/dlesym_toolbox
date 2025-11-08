@@ -5,5 +5,8 @@ __pycache__/
 # Ignore any directory named 'analysis_output' and its contents
 analysis_output/
 **/analysis_output/
+# Ignore any directory named 'analysis_output' and its contents
+analysis_outputs/
+**/analysis_outputs/
 analysis_configs/
 **/analysis_configs
