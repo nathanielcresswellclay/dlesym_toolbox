@@ -13,10 +13,12 @@ from omegaconf import OmegaConf, DictConfig
 # plotting 
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import matplotlib.patches as mpatches
 import matplotlib.cm as cm
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.util import add_cyclic_point
+import cartopy.io.shapereader as shpreader
 
 # mounted modules 
 from toolbox_utils import setup_logging
@@ -51,7 +53,20 @@ def _get_custom_cmap_brbg():
     new_cmap = mcolors.ListedColormap(new_colors)
     return new_cmap
 
-def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str):
+# colormap with white as the middle color, bwr base
+def _get_custom_cmap_bwr():
+    """
+    Create a custom colormap with white as the first color.
+    """
+    # Get the 'coolwarm' colormap
+    bwr = cm.get_cmap('bwr')
+    # Create a new colormap with white as the middle color
+    new_colors = bwr(np.linspace(0, 1, 256))
+    for i in range(112,147): new_colors[i] = mcolors.to_rgba('whitesmoke')  # RGBA for white
+    new_cmap = mcolors.ListedColormap(new_colors)
+    return new_cmap
+
+def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str, diff_plot: bool=False):
     """
     Plot global data on a map using the specified mapper.
     """
@@ -82,13 +97,34 @@ def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str):
         im = ax.contourf(
             lon_cyclic, data_ll.lat, data_ll_cyclic,
             transform=ccrs.PlateCarree(),
-            cmap=_get_custom_cmap_brbg(),
-            levels=np.arange(-.25, 1.0, 0.05),
+            cmap=_get_custom_cmap_brbg() if not diff_plot else _get_custom_cmap_bwr(),
+            levels=np.arange(-.25, 1.0, 0.05) if not diff_plot else np.arange(-0.4, 0.4, 0.05),
             extend='both',
         )
 
+        # adding a patch over greenland and antarctica to hide NDVI detected on ice sheets
+        shpfilename = shpreader.natural_earth(
+            resolution='110m', category='cultural', name='admin_0_countries'
+        )
+        reader = shpreader.Reader(shpfilename)
+        countries = reader.records()
+
+        # Loop through and find Greenland and Antarctica
+        for country in countries:
+
+            if country.attributes['NAME'] in ['Greenland', 'Antarctica']:
+                ax.add_geometries(
+                    [country.geometry],
+                    crs=ccrs.PlateCarree(),
+                    facecolor='grey',     # change color to whatever you like
+                    edgecolor='black',
+                )
+
         # add colorbar
         cbar = plt.colorbar(im, ax=ax, orientation='horizontal', pad=0.05, shrink=0.6)
+        # if diff plot set the ticks to be symmetric around zero
+        if diff_plot:
+            cbar.set_ticks(np.arange(-.4, 0.41, 0.2))
         cbar.set_label('NDVI', fontsize=12)
         # title and save the figure
         plt.title(f"{season}", fontsize=15)
@@ -170,6 +206,9 @@ def _plot_ndvi_climo(config: DictConfig , logger: logging.Logger):
         forecast_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_climatology'
         logger.info(f"Plotting forecast climatology to {forecast_climatology_file_prefix}*")
         _plot_global(fcst_climatology, mapper, forecast_climatology_file_prefix)
+        # plot difference map
+        diff_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_diff'
+        _plot_global(fcst_climatology - climatology, mapper, diff_climatology_file_prefix, diff_plot=True)
 
     return
     

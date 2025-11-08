@@ -1,0 +1,58 @@
+# General params 
+experiment_name: SM Anomalies during European Heatwave 2010
+toolbox_dir: /pscratch/sd/n/nacc/dlesym_toolbox
+output_dir: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_outputs/dltm_v3.1-ndvi
+gpus:
+  - 0
+  - 1
+  - 2
+  - 3
+n_proc: 4
+run_inference: False
+run_analysis: True
+  
+# ndvi climatology analysis example
+analyses:
+  - name: Forced NDVI Climatology
+    output_subdir: ${output_dir}/forced_ndvi_climatology_2001-2021
+    # parameters used to run forecasts for analysis. experiment_name is 
+    # the name of the module in forecast_experiments/
+    inference_params:
+      experiment_name: forced_historical_simulation
+      # logs and std outputs for inference are saved here
+      output_log: ${output_dir}/forced_ndvi_climatology_2001-2021/inference.log
+      # added to python path for inference
+      mounted_modules:
+        - /pscratch/sd/n/nacc/NV-dlesm_ncresswell
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+      models:
+        - /pscratch/sd/n/nacc/models/dltm_v3.1-ndvi
+      # this is the start of the forced run
+      init_time: 2001-01-01
+      # init end time is the end of the forced run
+      end_time: 2021-12-31
+      # config is temporary for launching subprocesses
+      config_cache: ${output_dir}/forced_ndvi_climatology_2001-2021.yaml
+      init_dataset: hpx64_2000-2021_3h_dltm-v3.1
+      overwrite_forecast: False
+    analysis_params:
+      # name of analysis module
+      analysis_name: forced_ndvi_climatology
+      # logs and std outputs for inference are saved here
+      output_log: ${output_dir}/forced_ndvi_climatology_2001-2021/analysis.log
+      # added to python path for analysis
+      mounted_modules:
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+        - /pscratch/sd/n/nacc/DLESyM
+      # conda environment for analysis
+      conda_env: /pscratch/sd/n/nacc/miniconda/envs/dlesym-0.1
+      # verification data for analysis
+      verification_file: /pscratch/sd/n/nacc/training_data/hpx64_2000-2021_3h_dltm-v3.1.zarr
+      # parameters specific to each forecast, IDs are used to name output plots
+      forecast_params:
+        - file: /pscratch/sd/n/nacc/models/dltm_v3.1-ndvi/forecasts/forecast_forced_historical_2001.01.01-2021.12.31.nc
+          model_id: dltm_v3.1-ndvi
+      # plots go here
+      output_directory: ${output_dir}/forced_ndvi_climatology_2001-2021/
+      # another temporary config for launching subprocesses
+      config_cache: ${output_dir}/forced_ndvi_climatology_2001-2021.yaml
