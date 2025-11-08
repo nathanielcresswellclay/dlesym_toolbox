@@ -142,11 +142,24 @@ def _run_analyses_parallel(analysis_params, n_proc):
             env = dict(os.environ)
             env["PYTHONPATH"] = os.pathsep.join(pythonpath_additions) + os.pathsep + env.get("PYTHONPATH", "")
 
-            # report location of log file
-            logger.info(f"Running analysis {analysis_name}. logging piped to {namespace_config.output_log}")
+            # if conda env specified, use that python exe
+            if hasattr(namespace_config, "conda_env"):
 
-            # run the experiment
-            p = subprocess.Popen(["python", analysis_name + '.py', config_cache], env=env)
+                # get python exe from conda env
+                conda_env_path = namespace_config.conda_env
+                python_exe = os.path.join(conda_env_path, "bin", "python")
+
+                logger.info(f"Running analysis {analysis_name} in conda env {conda_env_path}. logging piped to {namespace_config.output_log}")
+                # run the experiment
+                p = subprocess.Popen([python_exe, analysis_name + '.py', config_cache], env=env)
+
+            else:
+                # report location of log file
+                logger.info(f"Running analysis {analysis_name}. logging piped to {namespace_config.output_log}")
+                # run the experiment
+                p = subprocess.Popen(["python", analysis_name + '.py', config_cache], env=env)
+
+
             running.append((p, i, config_cache))
 
         time.sleep(5)
