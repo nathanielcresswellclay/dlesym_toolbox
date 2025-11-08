@@ -1,0 +1,67 @@
+# General params 
+experiment_name: SM Anomalies during European Heatwave 2003
+toolbox_dir: /pscratch/sd/n/nacc/dlesym_toolbox
+output_dir: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/2003_heatwave_sm_anomalies_coupled
+gpus:
+  - 0
+  # - 1
+  # - 2
+  # - 3
+n_proc: 1
+run_inference: True
+run_analysis: True
+  
+# Heat wave analysis config item 
+analyses:
+  - name: Soil moisture anomalies for 2003 heatwave
+    output_subdir: ${output_dir}/
+    # parameters used to run forecasts for analysis. experiment_name is 
+    # the name of the module in forecast_experiments/
+    inference_params:
+      experiment_name: euro_heatwave2003_3component-coupled_forecast
+      # logs and std outputs for inference are saved here
+      output_log: ${output_dir}/inference.log
+      # added to python path for inference
+      mounted_modules:
+        - /pscratch/sd/n/nacc/veggie-dltm/modulus-uw
+        - /pscratch/sd/n/nacc/veggie-dltm/NV-dlesm
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+      model_groups:
+        - land: /pscratch/sd/n/nacc/models/dltm_v2_physicsnemo
+          land_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_1979-2021_3h_dltm-v2
+          atmos: /pscratch/sd/n/nacc/models/dlesym_ttr_sm_terrestrialt2m-loss_v2_physicsnemo
+          atmos_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_1979-2021_3h_9Atmos-ttr_Coupled-sst-swvl1
+          ocean: /pscratch/sd/n/nacc/models/dlom-ttr_physicsnemo 
+          ocean_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_1983-2017_3h_1varCoupledOcean-z1000-ws10-ttr
+          output_dir: /pscratch/sd/n/nacc/models/dlesym_ttr_sm_terrestrialt2m-loss_v2_physicsnemo+dlom-ttr_physicsnemo+dltm_v2_physicsnemo/forecasts
+        # config is temporary for launching subprocesses
+      config_cache: ${output_dir}/2003_euro_heatwave_sm_experiment_config_temp.yaml
+      # working directory in which to run inference
+      run_directory: /pscratch/sd/n/nacc/dlesym_toolbox
+      overwrite_forecasts: True
+    analysis_params:
+      # name of analysis module 
+      analysis_name: euro_heatwave2003_sm_anomalies
+      # logs and std outputs for inference are saved here
+      output_log: ${output_dir}/analysis.log
+      # added to python path for analysis
+      mounted_modules:
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+        - /pscratch/sd/n/nacc/DLESyM
+        # - /pscratch/sd/n/nacc/miniconda/envs/dlesym-0.1/lib/python3.10/site-packages/
+      conda_env: /pscratch/sd/n/nacc/miniconda/envs/dlesym-0.1
+      # verification data for analysis
+      verification_file: /pscratch/sd/n/nacc/training_data/hpx64_1979-2021_3h_dltm-v2.zarr
+      # parameters specific to each forecast, IDs are used to name output plots
+      forecast_params:
+        - file: /pscratch/sd/n/nacc/models/dlesym_ttr_sm_terrestrialt2m-loss_v2_physicsnemo+dlom-ttr_physicsnemo+dltm_v2_physicsnemo/forecasts/land_forecast-coupled_euro-heatwave2003.nc
+          model_id: 3component-coupled
+      # initialization to be plotted, should work for any length input
+      inits:
+        - 2003-07-03
+        - 2003-07-05
+        - 2003-07-07
+      # plots go here
+      output_directory: ${output_dir}/
+      # another temporary config for launching subprocesses
+      config_cache: ${output_dir}/2003_euro_heatwave_sm_analysis_config_temp.yaml
