@@ -115,6 +115,17 @@ def _plot_ndvi_seasonal_forecasts(config: DictConfig, logger: logging.Logger):
     logger.info("Plotting observed NDVI data")
     ax.plot(obs.time, obs, label='MODIS Observations', color='black', linewidth=2)
 
+    # plot climatology if requested
+    if config.get('plot_climatology', False):
+        logger.info("Plotting NDVI climatology")
+        climatology_region = climatology.where(region_index.compute(), drop=True).mean(
+            dim=['face', 'height', 'width']
+        )
+        plot_dates = pd.date_range(config.plot_time_start, config.plot_time_end, freq='7D')
+        doy_list = list(plot_dates.dayofyear)
+        climo_vals = climatology_region.sel(dayofyear=doy_list, method='nearest').values
+        ax.plot(plot_dates, climo_vals, label='Climatology', color='gray', linestyle='--', linewidth=1.5)
+
     # check if ensemble mean or individual members are to be plotted
     if config.plot_ensemble_mean:
         logger.info("Plotting ensemble mean of forecasts")
