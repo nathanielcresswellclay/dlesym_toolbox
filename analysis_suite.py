@@ -74,6 +74,7 @@ def _run_experiments_parallel(experiment_params, gpus):
             # set up the environment for the subprocess
             env = dict(os.environ)
             env["CUDA_VISIBLE_DEVICES"] = str(gpu)
+            logger.debug(f"pythonpath_additions: {pythonpath_additions}")
             env["PYTHONPATH"] = os.pathsep.join(pythonpath_additions) + os.pathsep + env.get("PYTHONPATH", "")
 
             # report location of log file

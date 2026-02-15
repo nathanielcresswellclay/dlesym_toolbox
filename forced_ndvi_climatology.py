@@ -36,7 +36,6 @@ def main(config_path: str):
 
     logger.info("Loaded config:\n\n" + OmegaConf.to_yaml(config))  # prints the loaded YAML for clarity
 
-    print(type(config))
     _plot_ndvi_climo(config, logger)
     logger.info("Finished plotting climatology for NDVI.")
 
@@ -169,7 +168,7 @@ def _plot_ndvi_climo(config: DictConfig , logger: logging.Logger):
     )
 
     # plot seasons from observed climatology
-    obs_climatology_file_prefix = config.output_directory + '/obs_climatology'
+    obs_climatology_file_prefix = config.output_directory + '/obs_ndvi-climatology'
     logger.info(f"Plotting observed climatology to {obs_climatology_file_prefix}*")
     _plot_global(climatology, mapper, obs_climatology_file_prefix)
 
@@ -203,11 +202,11 @@ def _plot_ndvi_climo(config: DictConfig , logger: logging.Logger):
         # average climo into seasons: DJF, MAM, JJA, SON from day of year values
         fcst_climatology = fcst_climatology.assign_coords(dayofyear = pd.date_range('2000-01-01', '2000-12-31', freq='D')).groupby('dayofyear.season').mean(dim='dayofyear')
         # plot seasons from forecast climatology
-        forecast_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_climatology'
+        forecast_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_ndvi-climatology'
         logger.info(f"Plotting forecast climatology to {forecast_climatology_file_prefix}*")
         _plot_global(fcst_climatology, mapper, forecast_climatology_file_prefix)
         # plot difference map
-        diff_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_diff'
+        diff_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_ndvi-climatology-diff'
         _plot_global(fcst_climatology - climatology, mapper, diff_climatology_file_prefix, diff_plot=True)
 
     return

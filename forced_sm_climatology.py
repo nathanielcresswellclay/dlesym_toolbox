@@ -36,7 +36,6 @@ def main(config_path: str):
 
     logger.info("Loaded config:\n\n" + OmegaConf.to_yaml(config))  # prints the loaded YAML for clarity
 
-    print(type(config))
     _plot_sm_climo(config, logger)
     logger.info("Finished plotting climatology for Soil Moisture.")
 
@@ -149,7 +148,7 @@ def _plot_sm_climo(config: DictConfig , logger: logging.Logger):
         logger.info(f"Loading cached climatology from {climatology_file}")
         climatology = xr.open_dataset(climatology_file).targets
     else:
-        logger.info("Calculating climatology for the heatwave period")
+        logger.info(f"Calculating climatology from {config.verification_file}")
         climatology = xr.open_zarr(config.verification_file).targets.sel(
             channel_out="swvl1"
         ).groupby('time.dayofyear').mean(dim='time')
@@ -167,7 +166,7 @@ def _plot_sm_climo(config: DictConfig , logger: logging.Logger):
     )
 
     # plot seasons from observed climatology
-    obs_climatology_file_prefix = config.output_directory + '/obs_climatology'
+    obs_climatology_file_prefix = config.output_directory + '/obs_sm-climatology'
     logger.info(f"Plotting observed climatology to {obs_climatology_file_prefix}*")
     _plot_global(climatology, mapper, obs_climatology_file_prefix)
 
@@ -201,11 +200,11 @@ def _plot_sm_climo(config: DictConfig , logger: logging.Logger):
         # average climo into seasons: DJF, MAM, JJA, SON from day of year values
         fcst_climatology = fcst_climatology.assign_coords(dayofyear = pd.date_range('2000-01-01', '2000-12-31', freq='D')).groupby('dayofyear.season').mean(dim='dayofyear')
         # plot seasons from forecast climatology
-        forecast_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_climatology'
+        forecast_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_sm-climatology'
         logger.info(f"Plotting forecast climatology to {forecast_climatology_file_prefix}*")
         _plot_global(fcst_climatology, mapper, forecast_climatology_file_prefix)
         # plot difference map
-        diff_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_diff'
+        diff_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_sm-climatology-diff'
         _plot_global(fcst_climatology - climatology, mapper, diff_climatology_file_prefix, diff_plot=True)
 
 
