@@ -1,0 +1,73 @@
+# General params 
+experiment_name: Coupled Climatology example
+toolbox_dir: /pscratch/sd/n/nacc/dlesym_toolbox
+output_dir: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/coupled_climatology
+gpus:
+  - 0
+n_proc: 1
+run_inference: True
+run_analysis: True
+  
+# coupled climatology analysis example
+analyses:
+  - name: Coupled Climatology
+    output_subdir: ${output_dir}
+    # parameters used to run forecasts for analysis. experiment_name is 
+    # the name of the module in forecast_experiments/
+    inference_params:
+      experiment_name: coupled_historical_simulation
+      # logs and std outputs for inference are saved here
+      output_log: ${output_dir}/inference.log
+      # added to python path for inference
+      mounted_modules:
+        - /pscratch/sd/n/nacc/veggie-dltm/NV-dlesm
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+        - /pscratch/sd/n/nacc/veggie-dltm/modulus-uw
+      model_groups:
+        - land: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt
+          land_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_2000-2025_dltm-v4_rechunked-time768
+          atmos: /pscratch/sd/n/nacc/veggie-dltm/v4/models/rmse_atmos_sm-v4_precip_pm
+          atmos_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_1980-2025_dltm-v4_atmos-trainset_full_tp6-lt1e-8
+          ocean: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dlom-gt
+          ocean_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_1980-2025_dltm-v4_ocean-trainset
+          output_dir: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt+dlom-gt+rmse_atmos_sm-v4_precip_pm/forecasts
+        # config is temporary for launching subprocesses
+      # this is the start of the forced run
+      init_time: 2001-01-01
+      # init end time is the end of the forced run
+      end_time: 2005-12-30
+      # chunks
+      time_chunk: 1
+      step_chunk: 1000
+      # config is temporary for launching subprocesses
+      config_cache: ${output_dir}/coupled_climatology_2001.yaml
+      overwrite_forecasts: False
+    analysis_params:
+      # name of analysis module
+      analysis_name: coupled_climatology
+      # logs and std outputs for inference are saved here
+      output_log: ${output_dir}/analysis.log
+      # added to python path for analysis
+      mounted_modules:
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+        - /pscratch/sd/n/nacc/DLESyM
+      # conda environment for analysis
+      conda_env: /pscratch/sd/n/nacc/miniconda/envs/basic_earth2grid_cuHPX
+      # verification data for analysis
+      verification_file_land: /pscratch/sd/n/nacc/training_data/hpx64_2000-2025_dltm-v4_rechunked-time768.zarr
+      verification_file_atmos: /pscratch/sd/n/nacc/training_data/hpx64_1980-2025_dltm-v4_atmos-trainset_full_tp6-lt1e-8.zarr
+      verification_file_ocean: /pscratch/sd/n/nacc/training_data/hpx64_1980-2025_dltm-v4_ocean-trainset.zarr
+      # one mapping: component NetCDF paths + model_id (used to name outputs)
+      forecast_params:
+        land_file: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt+dlom-gt+rmse_atmos_sm-v4_precip_pm/forecasts/land_forecast-coupled_historical_2001.01.01-2005.12.30.nc
+        atmos_file: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt+dlom-gt+rmse_atmos_sm-v4_precip_pm/forecasts/atmos_forecast-coupled_historical_2001.01.01-2005.12.30.nc
+        ocean_file: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt+dlom-gt+rmse_atmos_sm-v4_precip_pm/forecasts/ocean_forecast-coupled_historical_2001.01.01-2005.12.30.nc
+        model_id: dltm-gt+dlom-gt+rmse_atmos_sm-v4_precip_pm
+      # which components to plot 
+      plot_land: True
+      plot_atmos: True
+      plot_ocean: True
+      # plots go here
+      output_directory: ${output_dir}
+      # another temporary config for launching subprocesses
+      config_cache: ${output_dir}/coupled_climatology.yaml
