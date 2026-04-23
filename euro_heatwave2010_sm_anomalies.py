@@ -64,9 +64,11 @@ def _plot_sm_anoms(config: DictConfig , logger: logging.Logger):
         logger.error(str(e))
         return  
     
+    # resolve time frequency. Default is 2D, but can be overridden in config
+    time_freq = config.time_frequency if config.time_frequency else '2D'
     # load our verification data and select swvl1 during the heatwave
     verif_sm = xr.open_zarr(config.verification_file).targets.sel(
-        time=pd.date_range('2010-07-25', '2010-08-08', freq='2D'),
+        time=pd.date_range('2010-07-25', '2010-08-08', freq=time_freq),
         channel_out="swvl1"
     )
 
@@ -86,9 +88,9 @@ def _plot_sm_anoms(config: DictConfig , logger: logging.Logger):
     # select heatwave period from climatology. climatology time dim is dayofyear
     # so we need to select the days corresponding to the heatwave, then fix dims
     climatology = climatology.sel(
-        dayofyear=pd.date_range('2010-07-25', '2010-08-08', freq='2D').dayofyear
+        dayofyear=pd.date_range('2010-07-25', '2010-08-08', freq=time_freq).dayofyear
     ).rename({"dayofyear": "time"}).assign_coords(
-        time=pd.date_range('2010-07-25', '2010-08-08', freq='2D')
+        time=pd.date_range('2010-07-25', '2010-08-08', freq=time_freq)
     )
 
     # now we calculate the observed anomalies, and average over time
@@ -155,12 +157,11 @@ def _plot_sm_anoms(config: DictConfig , logger: logging.Logger):
 
             # select target period and calculate daily mean, also format time time for compatibility with climatology
             try:
-                fcst_init = fcst_init.sel(time=pd.date_range('2010-07-25', '2010-08-08', freq='2D')).groupby('time.day').mean('time').rename({'day': 'time'}).assign_coords(
-                    time=pd.date_range('2010-07-25', '2010-08-08', freq='2D')
+                fcst_init = fcst_init.sel(time=pd.date_range('2010-07-25', '2010-08-08', freq=time_freq)).groupby('time.day').mean('time').rename({'day': 'time'}).assign_coords(
+                    time=pd.date_range('2010-07-25', '2010-08-08', freq=time_freq)
                 )
             except KeyError as e:
-                logger.error(f"Error selecting forecast data for {init}. This can happen in chosen initialization time does not align with calculations of target anomalies. \
-here we assume 2 day resolution inf the land model and forecast values for pd.date_range('2010-07-25', '2010-08-08', freq='2D'): {e}")
+                logger.error(f"Error selecting forecast data for {init}. This can happen in chosen initialization time does not align with calculations of target anomalies: {e}")
                 continue
 
             # calculate the anomaly for the forecast

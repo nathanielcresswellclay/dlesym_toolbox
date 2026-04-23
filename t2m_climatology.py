@@ -16,18 +16,20 @@ import matplotlib.colors as mcolors
 import matplotlib.patches as mpatches
 import matplotlib.cm as cm
 import cartopy.crs as ccrs
-import cartopy.feature as cfeature
 from cartopy.util import add_cyclic_point
 import cartopy.io.shapereader as shpreader
 
 # mounted modules 
 from toolbox_utils import setup_logging
 
+# Verification zarr `channel_out` and forecast NetCDF variable name
+T2M_CHANNEL = "t2m"
+
+
 def main(config_path: str):
 
     """
-    send config to routines that plot t2m and z500 anomalies during the 2003 heatwave in Europe
-
+    Plot seasonal climatology of 2 m temperature (verification and forecasts).
     """
 
     # load the config file
@@ -36,21 +38,13 @@ def main(config_path: str):
 
     logger.info("Loaded config:\n\n" + OmegaConf.to_yaml(config))  # prints the loaded YAML for clarity
 
-    _plot_ndvi_climo(config, logger)
-    logger.info("Finished plotting climatology for NDVI.")
+    _plot_t2m_climo(config, logger)
+    logger.info("Finished plotting climatology for 2 m temperature.")
 
 
-# colormap with white as the middle color, coolwarm base
-def _get_custom_cmap_brbg():
-    """
-    Create a custom colormap with white as the first color.
-    """
-    # Get the 'coolwarm' colormap
-    bwr = cm.get_cmap('BrBG')
-    # Create a new colormap with white as the middle color
-    new_colors = bwr(np.linspace(0, 1, 256))
-    new_cmap = mcolors.ListedColormap(new_colors)
-    return new_cmap
+def _get_t2m_cmap():
+    """Sequential colormap for absolute temperature."""
+    return cm.get_cmap("RdYlBu_r")
 
 # colormap with white as the middle color, bwr base
 def _get_custom_cmap_bwr():
@@ -58,7 +52,7 @@ def _get_custom_cmap_bwr():
     Create a custom colormap with white as the first color.
     """
     # Get the 'coolwarm' colormap
-    bwr = cm.get_cmap('bwr')
+    bwr = cm.get_cmap('bwr_r')
     # Create a new colormap with white as the middle color
     new_colors = bwr(np.linspace(0, 1, 256))
     for i in range(112,147): new_colors[i] = mcolors.to_rgba('whitesmoke')  # RGBA for white
@@ -83,48 +77,30 @@ def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str, diff_plot:
             figsize=(10, 5), subplot_kw={'projection': ccrs.Robinson()}
         )
         ax.set_title(f"{season} Climatology", fontsize=15)
-        ax.add_feature(cfeature.OCEAN, zorder=10, facecolor='white')
         ax.set_extent([-180, 180, -90, 90], crs=ccrs.PlateCarree())
-        ax.coastlines()
+        ax.coastlines(zorder=16)
 
         # add cyclic point to the data for plotting
         data_ll_cyclic, lon_cyclic = add_cyclic_point(
             data_ll, coord=data_ll.lon
         )
         
-        # plot the data
+        # 2 m temperature in Kelvin (ERA5-style); adjust if your data are Celsius
         im = ax.contourf(
             lon_cyclic, data_ll.lat, data_ll_cyclic,
             transform=ccrs.PlateCarree(),
-            cmap=_get_custom_cmap_brbg() if not diff_plot else _get_custom_cmap_bwr(),
-            levels=np.arange(-.25, 1.0, 0.05) if not diff_plot else np.arange(-0.4, 0.4, 0.05),
+            cmap=_get_t2m_cmap() if not diff_plot else _get_custom_cmap_bwr(),
+            levels=np.arange(220, 318, 4) if not diff_plot else np.arange(-8.0, 8.5, 0.5),
             extend='both',
+            zorder=5,
         )
-
-        # adding a patch over greenland and antarctica to hide NDVI detected on ice sheets
-        shpfilename = shpreader.natural_earth(
-            resolution='110m', category='cultural', name='admin_0_countries'
-        )
-        reader = shpreader.Reader(shpfilename)
-        countries = reader.records()
-
-        # Loop through and find Greenland and Antarctica
-        for country in countries:
-
-            if country.attributes['NAME'] in ['Greenland', 'Antarctica']:
-                ax.add_geometries(
-                    [country.geometry],
-                    crs=ccrs.PlateCarree(),
-                    facecolor='grey',     # change color to whatever you like
-                    edgecolor='black',
-                )
 
         # add colorbar
         cbar = plt.colorbar(im, ax=ax, orientation='horizontal', pad=0.05, shrink=0.6)
-        # if diff plot set the ticks to be symmetric around zero
-        if diff_plot:
-            cbar.set_ticks(np.arange(-.4, 0.41, 0.2))
-        cbar.set_label('NDVI', fontsize=12)
+        cbar.set_label(
+            '2 m temperature (K)' if not diff_plot else '2 m temperature difference (K)',
+            fontsize=12,
+        )
         # title and save the figure
         plt.title(f"{season}", fontsize=15)
         plt.savefig(f"{output_file_prefix}_{season}.png", dpi=300, bbox_inches='tight')
@@ -132,9 +108,9 @@ def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str, diff_plot:
 
     return
 
-def _plot_ndvi_climo(config: DictConfig , logger: logging.Logger):
-
-    # try to import remap module from DLESyM
+def _plot_t2m_climo(config: DictConfig , logger: logging.Logger):
+    
+    # try to import remap module from DLESyM 
     # NOTE there are some brittle dependencies to get remap to work properly
     # for environment recipe: https://github.com/AtmosSci-DLESM/DLESyM/blob/main/environments/dlesym-0.1.yaml
     try: 
@@ -144,15 +120,14 @@ def _plot_ndvi_climo(config: DictConfig , logger: logging.Logger):
         logger.error(str(e))
         return  
 
-    # next we need to get the climatology of verif data for comparison
-    climatology_file = config.verification_file.replace('.zarr', '_ndvi-clima.nc')
+    climatology_file = config.verification_file.replace('.zarr', f'_{T2M_CHANNEL}-clima.nc')
     if os.path.exists(climatology_file):
         logger.info(f"Loading cached climatology from {climatology_file}")
         climatology = xr.open_dataset(climatology_file).targets
     else:
-        logger.info("Calculating climatology NDVI_gapfill from verification data")
+        logger.info(f"Calculating climatology from {config.verification_file}")
         climatology = xr.open_zarr(config.verification_file).targets.sel(
-            channel_out="NDVI_gapfill",
+            channel_out=T2M_CHANNEL
         ).groupby('time.dayofyear').mean(dim='time')
         climatology.to_netcdf(climatology_file)
         logger.info(f"Climatology saved to {climatology_file}")
@@ -170,24 +145,17 @@ def _plot_ndvi_climo(config: DictConfig , logger: logging.Logger):
     # create output directory if it doesn't exist
     os.makedirs(config.output_directory, exist_ok=True)
 
-    # plot seasons from observed climatology
-    obs_climatology_file_prefix = config.output_directory + '/obs_ndvi-climatology'
+    obs_climatology_file_prefix = config.output_directory + f'/obs_{T2M_CHANNEL}-climatology'
     logger.info(f"Plotting observed climatology to {obs_climatology_file_prefix}*")
     _plot_global(climatology, mapper, obs_climatology_file_prefix)
 
-    # now we loop through to given forecasts and for each one calculate and plot
-    # the anomalies during the heatwave period forecasted by each initiailzation
-    # verification file is the same for all forecasts. Plots are saved to the 
-    # indicated output directory
     for forecast in config.forecast_params: 
 
-        # check if cache for climo exists, if not calculate it
-        fcst_climatology_file = forecast.file.replace('.nc', '_ndvi-clima.nc')
+        fcst_climatology_file = forecast.file.replace('.nc', f'_{T2M_CHANNEL}-clima.nc')
         if not os.path.exists(fcst_climatology_file):
 
             logger.info(f"Calculating climatology for {forecast.file} and caching to {fcst_climatology_file}")
-            # open the forecast file
-            fcst = xr.open_dataset(forecast.file).NDVI_gapfill
+            fcst = xr.open_dataset(forecast.file)[T2M_CHANNEL]
             # resolve the step dimension into valid time
             valid_time = fcst.time.values + fcst.step.values
             fcst = fcst.assign_coords({'step': valid_time})
@@ -201,16 +169,16 @@ def _plot_ndvi_climo(config: DictConfig , logger: logging.Logger):
         
         # load the forecast climatology
         logger.info(f"Loading cached climatology from {fcst_climatology_file}")
-        fcst_climatology = xr.open_dataset(fcst_climatology_file).NDVI_gapfill  
+        fcst_climatology = xr.open_dataset(fcst_climatology_file)[T2M_CHANNEL]
         # average climo into seasons: DJF, MAM, JJA, SON from day of year values
         fcst_climatology = fcst_climatology.assign_coords(dayofyear = pd.date_range('2000-01-01', '2000-12-31', freq='D')).groupby('dayofyear.season').mean(dim='dayofyear')
-        # plot seasons from forecast climatology
-        forecast_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_ndvi-climatology'
+        forecast_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_{T2M_CHANNEL}-climatology'
         logger.info(f"Plotting forecast climatology to {forecast_climatology_file_prefix}*")
         _plot_global(fcst_climatology, mapper, forecast_climatology_file_prefix)
         # plot difference map
-        diff_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_ndvi-climatology-diff'
+        diff_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_{T2M_CHANNEL}-climatology-diff'
         _plot_global(fcst_climatology - climatology, mapper, diff_climatology_file_prefix, diff_plot=True)
+
 
     return
     
@@ -220,7 +188,9 @@ if __name__ == "__main__":
 
     # receive arguments 
     import argparse
-    parser = argparse.ArgumentParser(description="Plot climatology of NDVI over historical run.")
+    parser = argparse.ArgumentParser(
+        description="Plot seasonal climatology of 2 m surface temperature (t2m)."
+    )
     parser.add_argument("config", type=str, help="Path to the YAML configuration file")
     args = parser.parse_args()
 

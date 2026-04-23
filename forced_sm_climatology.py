@@ -142,6 +142,9 @@ def _plot_sm_climo(config: DictConfig , logger: logging.Logger):
         logger.error(str(e))
         return  
 
+    # create output directory if it doesn't exist
+    os.makedirs(config.output_directory, exist_ok=True)
+
     # next we need to get the climatology of verif data for comparison
     climatology_file = config.verification_file.replace('.zarr', '_swvl1-clima.nc')
     if os.path.exists(climatology_file):
@@ -165,6 +168,9 @@ def _plot_sm_climo(config: DictConfig , logger: logging.Logger):
         nside=64,
     )
 
+    # create output directory if it doesn't exist
+    os.makedirs(config.output_directory, exist_ok=True)
+    
     # plot seasons from observed climatology
     obs_climatology_file_prefix = config.output_directory + '/obs_sm-climatology'
     logger.info(f"Plotting observed climatology to {obs_climatology_file_prefix}*")
@@ -216,7 +222,7 @@ if __name__ == "__main__":
 
     # receive arguments 
     import argparse
-    parser = argparse.ArgumentParser(description="Plot climatology of soil moisture during the 2003 heatwave in Europe.")
+    parser = argparse.ArgumentParser(description="Plot climatology of soil moisture.")
     parser.add_argument("config", type=str, help="Path to the YAML configuration file")
     args = parser.parse_args()
 
