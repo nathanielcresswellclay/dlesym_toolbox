@@ -33,6 +33,16 @@ def main(config_path: str):
     arg_template.freq = '1D'
     arg_template.gpu = 0
 
+    try:
+        from inference.forecast_single_component import inference
+        import inference.forecast_single_component as inference_module
+        # Get the directory where the inference module is located
+        # Hydra resolves config_path relative to this directory, not cwd
+        inference_module_dir = os.path.dirname(os.path.abspath(inference_module.__file__))
+    except ImportError as e:
+        logger.error(f"Failed to import forecast_single_component: {e}")
+        return
+
     # loop through models and add model-specific arguments
     inference_args = []
     for model in config.models:
@@ -47,7 +57,7 @@ def main(config_path: str):
         arg.output_filename = f"forecast_forced_historical_{config.init_time.replace('-','.')}-{config.end_time.replace('-','.')}"
         arg.data_directory = model_config.data.dst_directory
         arg.dataset_name = model_config.data.dataset_name if 'init_dataset' not in config.keys() else config.init_dataset
-        arg.hydra_path = os.path.relpath(model, os.path.join(os.getcwd(), 'hydra'))
+        arg.hydra_path = os.path.relpath(model, inference_module_dir)
         arg.model_checkpoint = None
         arg.batch_size = None
         arg.encode_int = False
@@ -61,13 +71,6 @@ def main(config_path: str):
 
         # clean up 
         del model_config
-    
-    # import the forecast function
-    try:
-        from inference.forecast_single_component import inference
-    except ImportError as e:
-        logger.error(f"Failed to import forecast_single_component: {e}")
-
     # run the forecast for each model
     for inference_arg in inference_args:
 

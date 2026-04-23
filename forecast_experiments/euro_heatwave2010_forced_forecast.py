@@ -24,11 +24,22 @@ def main(config_path: str):
     arg_template = OmegaConf.create()
 
     # add common arguments to template 
-    arg_template.lead_time = 60*24 # leadtime in hours 
-    arg_template.forecast_init_start = '2010-06-25T00:00:00' 
-    arg_template.forecast_init_end = '2010-07-25T00:00:00'
+    arg_template.lead_time = 120*24 # leadtime in hours 
+    arg_template.forecast_init_start = '2010-04-01T00:00:00' 
+    arg_template.forecast_init_end = '2010-07-01T00:00:00'
     arg_template.freq = '1D'
     arg_template.gpu = 0
+
+    # import the forecast function first to get its module path
+    try:
+        from inference.forecast_single_component import inference
+        import inference.forecast_single_component as inference_module
+        # Get the directory where the inference module is located
+        # Hydra resolves config_path relative to this directory, not cwd
+        inference_module_dir = os.path.dirname(os.path.abspath(inference_module.__file__))
+    except ImportError as e:
+        logger.error(f"Failed to import forecast_single_component: {e}")
+        return
 
     # loop through models and add model-specific arguments
     inference_args = []
@@ -44,7 +55,7 @@ def main(config_path: str):
         arg.output_filename = "forecast_forced_euro-heatwave2010"
         arg.data_directory = model_config.data.dst_directory
         arg.dataset_name = model_config.data.dataset_name
-        arg.hydra_path = os.path.relpath(model, os.path.join(os.getcwd(), 'hydra'))
+        arg.hydra_path = os.path.relpath(model, inference_module_dir)
         arg.model_checkpoint = None
         arg.batch_size = None
         arg.encode_int = False
@@ -59,11 +70,6 @@ def main(config_path: str):
         # clean up 
         del model_config
     
-    # import the forecast function
-    try:
-        from inference.forecast_single_component import inference
-    except ImportError as e:
-        logger.error(f"Failed to import forecast_single_component: {e}")
 
     # run the forecast for each model
     for inference_arg in inference_args:
