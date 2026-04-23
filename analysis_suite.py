@@ -153,7 +153,6 @@ def _run_analyses_parallel(analysis_params, n_proc):
                 logger.info(f"Running analysis {analysis_name} in conda env {conda_env_path}. logging piped to {namespace_config.output_log}")
                 # run the experiment
                 p = subprocess.Popen([python_exe, analysis_name + '.py', config_cache], env=env)
-
             else:
                 # report location of log file
                 logger.info(f"Running analysis {analysis_name}. logging piped to {namespace_config.output_log}")
@@ -161,7 +160,7 @@ def _run_analyses_parallel(analysis_params, n_proc):
                 p = subprocess.Popen(["python", analysis_name + '.py', config_cache], env=env)
 
 
-            running.append((p, i, config_cache))
+            running.append((p, i, config_cache)), 
 
         time.sleep(5)
 
