@@ -55,7 +55,7 @@ def main(config_path: str):
     arg_template.cache_dir = config.models.output_dir
 
     # log the template
-    logger.info(f"Template: {arg_template}")    
+    # logger.info(f"Template: {arg_template}")    
 
     # deduce ensemble members
     n_land_checkpoints = len(getattr(config.models.land, 'checkpoints', [1]))
