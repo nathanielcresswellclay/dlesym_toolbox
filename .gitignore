@@ -10,3 +10,9 @@ analysis_outputs/
 **/analysis_outputs/
 analysis_configs/
 **/analysis_configs
+# ignore batch analysis scripts
+batch_analysis/
+**/batch_analysis/
+# .logs files
+*.log
+**/logs/*.log
