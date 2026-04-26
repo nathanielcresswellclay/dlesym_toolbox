@@ -1,0 +1,65 @@
+# General params 
+experiment_name: Coupled Climatology example
+toolbox_dir: /pscratch/sd/n/nacc/dlesym_toolbox
+output_dir: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/gt-dev
+gpus:
+  - 0
+n_proc: 1
+run_inference: True
+run_analysis: False
+  
+# ndvi climatology analysis example
+analyses:
+  - name: Coupled Climatology
+    output_subdir: ${output_dir}/coupled_climatology_2001-2021
+    # parameters used to run forecasts for analysis. experiment_name is 
+    # the name of the module in forecast_experiments/
+    inference_params:
+      experiment_name: coupled_historical_simulation
+      # logs and std outputs for inference are saved here
+      output_log: ${output_dir}/coupled_climatology_2001-2021/inference.log
+      # added to python path for inference
+      mounted_modules:
+        - /pscratch/sd/n/nacc/veggie-dltm/NV-dlesm
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+        - /pscratch/sd/n/nacc/veggie-dltm/modulus-uw
+      model_groups:
+        - land: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt
+          land_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_2000-2025_dltm-v4_rechunked-time768
+          atmos: /pscratch/sd/n/nacc/veggie-dltm/v4/models/rmse_atmos_sm-v4_precip_pm
+          atmos_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_1980-2025_dltm-v4_atmos-trainset_full_tp6-lt1e-8
+          ocean: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dlom-gt
+          ocean_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_1980-2025_dltm-v4_ocean-trainset
+          output_dir: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt+rmse_atmos_sm-v4_precip_pm+dlom-gt/forecasts
+        # config is temporary for launching subprocesses
+      # this is the start of the forced run
+      init_time: 2001-01-01
+      # init end time is the end of the forced run
+      end_time: 2011-01-01
+      # chunks
+      time_chunk: 1
+      step_chunk: 1000
+      # config is temporary for launching subprocesses
+      config_cache: ${output_dir}/forced_ndvi_climatology_2001-2021.yaml
+      overwrite_forecasts: False
+    analysis_params:
+      # name of analysis module
+      analysis_name: forced_ndvi_climatology
+      # logs and std outputs for inference are saved here
+      output_log: ${output_dir}/forced_ndvi_climatology_2001-2021/analysis.log
+      # added to python path for analysis
+      mounted_modules:
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+        - /pscratch/sd/n/nacc/DLESyM
+      # conda environment for analysis
+      conda_env: /pscratch/sd/n/nacc/miniconda/envs/dlesym-0.1
+      # verification data for analysis
+      verification_file: /pscratch/sd/n/nacc/training_data/hpx64_2000-2025_dltm-v4_rechunked-time768.zarr
+      # parameters specific to each forecast, IDs are used to name output plots
+      forecast_params:
+        - file: /pscratch/sd/n/nacc/models/dltm-gt+rmse_atmos_sm-v4_precip_pm+rmse_ocean-v4/forecasts/forecast_forced_historical_2001.01.01-2021.12.31.nc
+          model_id: dltm-v4.13-resnet2d
+      # plots go here
+      output_directory: ${output_dir}/forced_ndvi_climatology_2001-2021/
+      # another temporary config for launching subprocesses
+      config_cache: ${output_dir}/forced_ndvi_climatology_2001-2021.yaml

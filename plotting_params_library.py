@@ -40,17 +40,17 @@ plotting_param_library = dict(
     ),
     t2m = dict(
         cmap = _get_custom_cmap_split('bwr'),
-        anomaly_levels = np.arange(-10,11,1),
-        anomaly_ticks = np.arange(-10,11,1),
+        anomaly_levels = np.arange(-15,16,2),
+        anomaly_ticks = np.arange(-15,16,5),
         label = 'Surface Temperature',
         units = 'K'
     ),
     z500 = dict(
         cmap = _get_custom_cmap_split('bwr'),
-        anomaly_levels = np.arange(-10,11,1),
-        anomaly_ticks = np.arange(-10,11,1),
+        anomaly_levels = np.arange(-100,101,10),
+        anomaly_ticks = np.arange(-100,101,20),
         label = '500 hPa Geopotential',
         units = 'dam',
-        scaling = 98.1
+        scaling = 1 / 98.1
     )
 )

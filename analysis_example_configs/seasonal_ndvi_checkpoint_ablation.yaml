@@ -1,0 +1,63 @@
+# Seasonal NDVI checkpoint ablation: March 1 2024 init, 9-month forecast, 5 checkpoints well spaced throughout training
+experiment_name: seasonal_ndvi_checkpoint_ablation
+toolbox_dir: /pscratch/sd/n/nacc/dlesym_toolbox
+output_dir: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs
+gpus:
+  - 0
+n_proc: 1
+run_inference: True
+run_analysis: True
+
+analyses:
+  - name: Seasonal NDVI checkpoint ablation March 2024
+    output_subdir: ${output_dir}/seasonal_ndvi_checkpoint_ablation_2024march
+    inference_params:
+      experiment_name: forced_checkpoint_ablation_inference
+      output_log: ${output_dir}/seasonal_ndvi_checkpoint_ablation_2024march/inference.log
+      mounted_modules:
+        - /pscratch/sd/n/nacc/veggie-dltm/modulus-uw
+        - /pscratch/sd/n/nacc/veggie-dltm/NV-dlesm
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+      model: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-v4.1
+      forecast_init_start: 2024-03-01
+      forecast_init_end: 2024-03-01
+      lead_time: 6624  # 9 months in hours (276 days)
+      freq: 1D
+      checkpoints:  # 5 checkpoints well spaced throughout training (from dltm-v4.1)
+        # - training-state-e0.mdlus
+        - training-state-e50.mdlus
+        - training-state-e100.mdlus
+        - training-state-e150.mdlus
+        - training-state-epoch-0149-val_loss=8.9493E-03.mdlus
+        - training-state-epoch-0147-val_loss=8.9513E-03.mdlus
+        - training-state-epoch-0144-val_loss=8.9569E-03.mdlus
+        - training-state-epoch-0145-val_loss=8.9559E-03.mdlus
+      output_filename_prefix: forecast_seasonal_ndvi_2024march_
+      init_dataset: hpx64_2000-2025_dltm-v4
+      config_cache: ${output_dir}/seasonal_ndvi_checkpoint_ablation_2024march/inference_config.yaml
+      overwrite_forecasts: False
+    analysis_params:
+      analysis_name: regional_average_ndvi_seasonal_forecast_checkpoint_ablation
+      output_log: ${output_dir}/seasonal_ndvi_checkpoint_ablation_2024march/analysis.log
+      mounted_modules:
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+        - /pscratch/sd/n/nacc/DLESyM
+      conda_env: /pscratch/sd/n/nacc/miniconda/envs/basic_earth2grid_cuHPX
+      verification_file: /pscratch/sd/n/nacc/training_data/hpx64_2000-2025_dltm-v4.zarr
+      forecast_directory: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-v4.1/forecasts/6624h_forced_checkpoint_ablation
+      forecast_filename_prefix: forecast_seasonal_ndvi_2024march_
+      region_box:
+        west: -100.0
+        east: -80.0
+        south: 35.0
+        north: 45.0
+      plot_climatology: True
+      plot_region_map: True
+      plot_time_start: 2024-03-01
+      plot_time_end: 2024-12-01
+      output_directory: ${output_dir}/seasonal_ndvi_checkpoint_ablation_2024march
+      figure_params:
+        title: "Regional Average NDVI - Checkpoint Ablation"
+        savefig_params:
+          dpi: 300
+      config_cache: ${output_dir}/seasonal_ndvi_checkpoint_ablation_2024march/analysis_config.yaml

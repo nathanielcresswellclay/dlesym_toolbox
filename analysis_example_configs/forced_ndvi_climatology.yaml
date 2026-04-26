@@ -1,7 +1,7 @@
 # General params 
-experiment_name: SM Anomalies during European Heatwave 2010
+experiment_name: NDVI Climatology example
 toolbox_dir: /pscratch/sd/n/nacc/dlesym_toolbox
-output_dir: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_outputs/dltm_v3.1-ndvi
+output_dir: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/forced_ndvi_climatology
 gpus:
   - 0
   - 1

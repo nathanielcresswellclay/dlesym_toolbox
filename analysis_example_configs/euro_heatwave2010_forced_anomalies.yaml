@@ -54,4 +54,4 @@ analyses:
       # plots go here
       output_directory: ${output_dir}/2010_heatwave_anomalies_forced/
       # another temporary config for launching subprocesses
-      config_cache: /pscratch/sd/n/nacc/forced_euro_heatwave2010_analysis_config_temp.yaml
+      config_cache: ${output_dir}/forced_euro_heatwave2010_analysis_config_temp.yaml

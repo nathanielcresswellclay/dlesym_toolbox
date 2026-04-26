@@ -8,13 +8,13 @@ gpus:
   # - 2
   # - 3
 n_proc: 1
-run_inference: False
+run_inference: True
 run_analysis: True
   
-# Heat wave analysis config item 
+# 2003 European Heatwave analysis config item 
 analyses:
   - name: Soil moisture anomalies for 2003 heatwave; testing coupled sim
-    output_subdir: ${output_dir}/
+    output_subdir: ${output_dir}/2003_heatwave
     # parameters used to run forecasts for analysis. experiment_name is 
     # the name of the module in forecast_experiments/
     inference_params:
@@ -64,7 +64,7 @@ analyses:
       # name of analysis module 
       analysis_name: target_anomalies_checkpoint_ensemble
       # logs and std outputs for inference are saved here
-      output_log: ${output_dir}/analysis.log
+      output_log: ${output_dir}/2003_heatwave/analysis.log
       # added to python path for analysis
       mounted_modules:
         - /pscratch/sd/n/nacc/dlesym_toolbox
@@ -96,7 +96,96 @@ analyses:
         lat_range: [-20, 35]
         lon_range: [34, 65]
       # plots go here
-      output_directory: ${output_dir}/
+      output_directory: ${output_dir}/2003_heatwave
+      # plot individual members of the ensemble, or only the ensemble mean
+      plot_individual_members: True
+      # another temporary config for launching subprocesses
+      config_cache:  ${output_dir}/target_anomalies_checkpoint_ensemble_config_temp.yaml
+  # 2021 PNW Heatwave analysis config item ----------------------------------------
+  - name: Soil moisture anomalies for 2021 heatwave; testing coupled sim
+    output_subdir: ${output_dir}/2021_heatwave
+    # parameters used to run forecasts for analysis. experiment_name is 
+    # the name of the module in forecast_experiments/
+    inference_params:
+      experiment_name: coupled_simulation_checkpoint_ensemble
+      # logs and std outputs for inference are saved here
+      output_log: ${output_dir}/2021_heatwave/inference.log
+      # added to python path for inference
+      mounted_modules:
+        - /pscratch/sd/n/nacc/veggie-dltm/modulus-uw
+        - /pscratch/sd/n/nacc/veggie-dltm/NV-dlesm
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+      # Models is a dictionary. The keys are the components of the 3 
+      # component inference. The values are (1) a string to the model directory
+      # in which case the inference routine will default to selecting the lowest validation
+      # loss checkpoint, or optionally (2) a list of strings to the checkpoint paths. Lists of
+      # checkpoints for different components must be of equal length. Repeated checkpoints in 
+      # the same list is supported. String values will broadcast to checkpoints in other 
+      # components. 
+      models:
+        land: 
+          model_path: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-v4.2-global
+          checkpoints: 
+            - training-state-epoch-0149-val_loss=2.2072E-03.mdlus
+            - training-state-epoch-0145-val_loss=2.2078E-03.mdlus
+            - training-state-epoch-0150-val_loss=2.2073E-03.mdlus
+            - training-state-epoch-0146-val_loss=2.2072E-03.mdlus
+          land_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_2000-2025_dltm-v4_rechunked-time768
+        ocean: 
+          model_path: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dlom-gt
+          ocean_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_1980-2025_dltm-v4_ocean-trainset
+        atmos: 
+          model_path: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dlwp-gt
+          atmos_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_1980-2025_dltm-v4_atmos-trainset_full_tp6-lt1e-8
+        output_dir: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-v4.2-global+dlom-gt+dlwp-gt/2021_heatwave
+      forecast_init_start: '2021-03-01T00:00:00'
+      forecast_init_end: '2021-03-01T00:00:00'
+      freq: '1D'
+      leadtime: 3552 # 5 months in hours, roughly
+      forecast_file_suffix: 'pnw-heatwave2021'
+      # config is temporary for launching subprocesses
+      config_cache: ${output_dir}/coupled_simulation_checkpoint_ensemble_config_temp.yaml
+      # working directory in which to run inference
+      run_directory: /pscratch/sd/n/nacc/dlesym_toolbox
+      overwrite_forecasts: False
+    # 
+    analysis_params:
+      # name of analysis module 
+      analysis_name: target_anomalies_checkpoint_ensemble
+      # logs and std outputs for inference are saved here
+      output_log: ${output_dir}/2021_heatwave/analysis.log
+      # added to python path for analysis
+      mounted_modules:
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+        - /pscratch/sd/n/nacc/DLESyM
+      conda_env: /pscratch/sd/n/nacc/miniconda/envs/basic_earth2grid_cuHPX
+      # verification data for land analysis and any land variables if desired
+      land_verification_file: /pscratch/sd/n/nacc/training_data/hpx64_2000-2025_dltm-v4.zarr
+      land_variables:
+        - swvl1
+        - stl1
+        - NDVI_gapfill
+      # verification data for ocean analysis and any ocean variables if desired
+      ocean_verification_file: null
+      ocean_variables: null
+      # verification data for atmosphere analysis and any atmosphere variables if desired
+      atmos_verification_file: /pscratch/sd/n/nacc/training_data/hpx64_1980-2025_dltm-v4_atmos-trainset_full_tp6-lt1e-8.zarr
+      atmos_variables:
+        - z500
+        - t2m
+      # parameters specific to each forecast, IDs are used to name output plots
+      # here we assume the ensemble is a directory containing the forecasts for each checkpoint
+      ensemble_dir: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-v4.2-global+dlom-gt+dlwp-gt/2021_heatwave
+      model_id: dltm-v4.2-global+dlom-gt+dlwp-gt
+      # initialization to be plotted, should work for any length input
+      target_time_slice:
+        start_time: 2021-06-25
+        end_time: 2021-07-05
+      region:
+        lat_range: [-130, -115]
+        lon_range: [30, 65]
+      # plots go here
+      output_directory: ${output_dir}/2021_heatwave
       # plot individual members of the ensemble, or only the ensemble mean
       plot_individual_members: True
       # another temporary config for launching subprocesses
