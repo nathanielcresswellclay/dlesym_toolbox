@@ -82,7 +82,7 @@ Top-level controls include:
 - `run_analysis`: enable/disable analysis phase.
 - `analyses`: list of analysis blocks.
 
-A full field reference is documented in `CONFIG_REFERENCE.md`.
+A full field reference is documented in [`CONFIG_REFERENCE.md`](https://github.com/nathanielcresswellclay/dlesym_toolbox/blob/main/docs/CONFIG_REFERENCE.md).
 
 ## Logs and Outputs
 
@@ -98,5 +98,5 @@ To add a new workflow:
 2. Create a new analysis module (top-level `*.py`). This should also be callable as a script and take a string path to a configuration yaml.
 3. Add a config in `analysis_example_configs/` wiring `experiment_name` and `analysis_name` as appropriate for the two routines above. 
 
-Detailed conventions are in `DEVELOPMENT_GUIDE.md`.
+Detailed conventions are in [`DEVELOPMENT_GUIDE.md`](https://github.com/nathanielcresswellclay/dlesym_toolbox/blob/main/docs/DEVELOPMENT_GUIDE.md).
 
