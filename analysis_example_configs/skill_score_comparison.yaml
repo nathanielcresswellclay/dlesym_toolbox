@@ -1,0 +1,70 @@
+# Examples of various uses of skill score comparison. Here the analysis routine 
+# is consistent, but we forcast using models in coupled and forced modes as well 
+# as showing the versatility of the skill scoring routine
+
+
+
+experiment_name: skill score comparison
+toolbox_dir: /pscratch/sd/n/nacc/dlesym_toolbox
+output_dir: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs
+gpus:
+  - 0
+n_proc: 1
+run_inference: False
+run_analysis: True
+
+analyses:
+# Scoring for a 60 day forced simulation in the atmosphere 
+  - name: skill scoring 60 day forced comparison
+    output_subdir: ${output_dir}/skill_score_60day_comparison_forced
+    inference_params:
+      experiment_name: skill_60day_comparison_forced
+      output_log: ${output_dir}/skill_score_60day_comparison_forced/inference.log
+      mounted_modules:
+        - /pscratch/sd/n/nacc/modulus-uw-dltm
+        - /pscratch/sd/n/nacc/NV-dlesm_ncresswell
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+      output_file_suffix: _2017-2018
+      forecast_init_start: 2016-06-30
+      forecast_init_end: 2017-05-01
+      models:
+        - /pscratch/sd/n/nacc/models/dlesym-ttr_sm
+        - /pscratch/sd/n/nacc/models/dlesym_modulus
+        - /pscratch/sd/n/nacc/models/dlesym-ttr
+      config_cache: ${output_dir}/forced_skill_60_day_experiment_config_temp.yaml
+      overwrite_forecasts: False
+    analysis_params:
+      analysis_name: skill_score_atmos
+      output_log: ${output_dir}/skill_score_60day_comparison_forced/analysis.log
+      mounted_modules:
+        - /pscratch/sd/n/nacc/NV-dlesm_sharpness
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+      verification_file: /pscratch/sd/n/nacc/training_data/hpx64_1979-2021_3h_9Atmos-ttr_Coupled-sst-swvl1.zarr
+      forecast_params:
+        - file: /pscratch/sd/n/nacc/models/dlesym-ttr_sm/forecasts/forecast_forced_60day_2017-2018.nc
+          plot_kwargs:
+            label: DLESyM-TTR-SM
+            color: blue
+            linewidth: 2
+        - file: /pscratch/sd/n/nacc/models/dlesym_modulus/forecasts/forecast_forced_60day_2017-2018.nc
+          plot_kwargs:
+            label: DLESyM-Modulus
+            color: green
+            linewidth: 2
+        - file: /pscratch/sd/n/nacc/models/dlesym-ttr/forecasts/forecast_forced_60day_2017-2018.nc
+          plot_kwargs:
+            label: DLESyM-TTR
+            color: red
+            linewidth: 2
+      variables:
+        - z500
+        - t850
+        - t2m0
+      output_directory: ${output_dir}/skill_score_60day_comparison_forced/
+      plot_file_suffix: _60day_forced
+      config_cache: ${output_dir}/forced_skill_60_day_skill_config_temp.yaml
+      forecast_file_suffix: _2017-2018.nc
+      overwrite_cache: False
+      xlim: 
+        left: 0 
+        right: 60
