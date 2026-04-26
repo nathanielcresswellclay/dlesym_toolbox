@@ -1,0 +1,27 @@
+output_log: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/climo-coupled_simulation_checkpoint_ensemble_dev/2021_heatwave/analysis.log
+conda_env: /pscratch/sd/n/nacc/miniconda/envs/basic_earth2grid_cuHPX
+land_verification_file: /pscratch/sd/n/nacc/training_data/hpx64_2000-2025_dltm-v4.zarr
+land_variables:
+- swvl1
+- stl1
+- NDVI_gapfill
+ocean_verification_file: null
+ocean_variables: null
+atmos_verification_file: /pscratch/sd/n/nacc/training_data/hpx64_1980-2025_dltm-v4_atmos-trainset_full_tp6-lt1e-8.zarr
+atmos_variables:
+- z500
+- t2m
+ensemble_dir: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-v4.2-global+dlom-gt+dlwp-climo/2021_heatwave
+model_id: dltm-v4.2-global+dlom-gt+dlwp-gt
+target_time_slice:
+  start_time: '2021-06-25'
+  end_time: '2021-07-05'
+region:
+  lat_range:
+  - -130
+  - -115
+  lon_range:
+  - 30
+  - 65
+output_directory: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/climo-coupled_simulation_checkpoint_ensemble_dev/2021_heatwave
+plot_individual_members: true

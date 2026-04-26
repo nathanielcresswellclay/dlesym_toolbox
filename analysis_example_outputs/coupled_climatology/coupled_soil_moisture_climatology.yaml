@@ -1,0 +1,14 @@
+output_log: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/coupled_climatology/analysis.log
+conda_env: /pscratch/sd/n/nacc/miniconda/envs/basic_earth2grid_cuHPX
+verification_file_land: /pscratch/sd/n/nacc/training_data/hpx64_2000-2025_dltm-v4_rechunked-time768.zarr
+verification_file_atmos: /pscratch/sd/n/nacc/training_data/hpx64_1980-2025_dltm-v4_atmos-trainset_full_tp6-lt1e-8.zarr
+verification_file_ocean: /pscratch/sd/n/nacc/training_data/hpx64_1980-2025_dltm-v4_ocean-trainset.zarr
+forecast_params:
+  land_file: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-v4.2-big+rmse_atmos_sm-v4_precip_pm+rmse_ocean-v4/forecasts/land_forecast-coupled_historical_2001.01.01-2005.12.30.nc
+  atmos_file: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-v4.2-big+rmse_atmos_sm-v4_precip_pm+rmse_ocean-v4/forecasts/atmos_forecast-coupled_historical_2001.01.01-2005.12.30.nc
+  ocean_file: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-v4.2-big+rmse_atmos_sm-v4_precip_pm+rmse_ocean-v4/forecasts/ocean_forecast-coupled_historical_2001.01.01-2005.12.30.nc
+  model_id: dltm-v4.2-big+rmse_atmos_sm-v4_precip_pm+rmse_ocean-v4
+plot_land: true
+plot_atmos: true
+plot_ocean: true
+output_directory: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/coupled_climatology

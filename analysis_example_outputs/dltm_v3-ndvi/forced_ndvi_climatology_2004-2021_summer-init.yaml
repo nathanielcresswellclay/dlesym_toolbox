@@ -1,0 +1,6 @@
+output_log: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/dltm_v3-ndvi/forced_ndvi_climatology_2004-2021_summer-init/analysis.log
+verification_file: /pscratch/sd/n/nacc/training_data/hpx64_2000-2021_3h_dltm-v3.zarr
+forecast_params:
+- file: /pscratch/sd/n/nacc/models/dltm_v3-ndvi/forecasts/forecast_forced_historical_2004.07.01-2021.12.31.nc
+  model_id: dltm_v3-ndvi
+output_directory: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/dltm_v3-ndvi/forced_ndvi_climatology_2004-2021_summer-init/
