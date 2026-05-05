@@ -1,0 +1,175 @@
+# General params 
+experiment_name: RMSE ACC Scoring Example
+toolbox_dir: /pscratch/sd/n/nacc/dlesym_toolbox
+output_dir: /pscratch/sd/n/nacc/dlesym_toolbox/analysis_example_outputs/rmse_acc_scoring_dev
+gpus:
+  - 0
+  - 1
+  - 2
+  - 3
+n_proc: 1
+run_inference: False
+run_analysis: True
+  
+# Forced historical climatology analysis configuration
+analyses:
+  - name: 60-day skill forecast 208 inits ground truth
+    output_subdir: ${output_dir}/60-day_skill_forecast_gt
+    # parameters used to run forecasts for analysis. experiment_name is 
+    # the name of the module in forecast_experiments/
+    inference_params:
+      experiment_name: coupled_skill_forecast_3component
+      # logs and std outputs for inference are saved here
+      output_log: ${output_dir}/60-day_skill_forecast_gt/inference.log
+      # added to python path for inference
+      mounted_modules:
+        - /pscratch/sd/n/nacc/veggie-dltm/NV-dlesm
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+        - /pscratch/sd/n/nacc/veggie-dltm/modulus-uw
+      model_groups:
+        - land: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt
+          land_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_2000-2025_dltm-v4_rechunked-time768
+          atmos: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dlwp-gt
+          atmos_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_1980-2025_dltm-v4_atmos-trainset_full_tp6-lt1e-8
+          ocean: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dlom-gt
+          ocean_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_1980-2025_dltm-v4_ocean-trainset
+          output_dir: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt+dlom-gt+dlwp-gt/forecasts
+        # config is temporary for launching subprocesses
+      # Used to initialize daterange of inits 
+      init_time_start: 2022-01-01
+      init_time_end: 2023-12-30
+      init_freq: 'MS'
+      # chunks
+      time_chunk: 1
+      step_chunk: 32
+      # leadtime in days
+      leadtime: 60
+      # config is temporary for launching subprocesses
+      config_cache: ${output_dir}/60-day_skill_forecast_gt/config.yaml
+      overwrite_forecasts: True
+  - name: 60-day skill forecast 208 inits climo
+    output_subdir: ${output_dir}/60-day_skill_forecast_climo
+    # parameters used to run forecasts for analysis. experiment_name is 
+    # the name of the module in forecast_experiments/
+    inference_params:
+      experiment_name: coupled_skill_forecast_3component
+      # logs and std outputs for inference are saved here
+      output_log: ${output_dir}/60-day_skill_forecast_climo/inference.log
+      # added to python path for inference
+      mounted_modules:
+        - /pscratch/sd/n/nacc/veggie-dltm/NV-dlesm
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+        - /pscratch/sd/n/nacc/veggie-dltm/modulus-uw
+      model_groups:
+        - land: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt
+          land_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_2000-2025_dltm-v4_rechunked-time768
+          atmos: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dlwp-climo_1980-2024
+          atmos_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_1980-2025_dltm-v4_atmos-trainset_full_tp6-lt1e-8
+          ocean: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dlom-gt
+          ocean_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_1980-2025_dltm-v4_ocean-trainset
+          output_dir: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt+dlom-gt+dlwp-climo/forecasts
+        # config is temporary for launching subprocesses
+      # Used to initialize daterange of inits 
+      init_time_start: 2022-01-01
+      init_time_end: 2023-12-30
+      init_freq: 'MS'
+      # chunks
+      time_chunk: 1
+      step_chunk: 32
+      # leadtime in days
+      leadtime: 60
+      # config is temporary for launching subprocesses
+      config_cache: ${output_dir}/60-day_skill_forecast_climo/config.yaml
+      overwrite_forecasts: True
+  - name: 60-day skill forecast 208 inits dlwp-v4
+    output_subdir: ${output_dir}/60-day_skill_forecast_dlwp-v4
+    # parameters used to run forecasts for analysis. experiment_name is 
+    # the name of the module in forecast_experiments/
+    inference_params:
+      experiment_name: coupled_skill_forecast_3component
+      # logs and std outputs for inference are saved here
+      output_log: ${output_dir}/60-day_skill_forecast_dlwp-v4/inference.log
+      # added to python path for inference
+      mounted_modules:
+        - /pscratch/sd/n/nacc/veggie-dltm/NV-dlesm
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+        - /pscratch/sd/n/nacc/veggie-dltm/modulus-uw
+      model_groups:
+        - land: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt
+          land_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_2000-2025_dltm-v4_rechunked-time768
+          atmos: /pscratch/sd/n/nacc/veggie-dltm/v4/models/rmse_atmos_sm-v4_precip-reweight_refine
+          atmos_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_1980-2025_dltm-v4_atmos-trainset_full_tp6-lt1e-8
+          ocean: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dlom-gt
+          ocean_dataset_path: /pscratch/sd/n/nacc/training_data/hpx64_1980-2025_dltm-v4_ocean-trainset
+          output_dir: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt+dlom-gt+dlwp-v4/forecasts
+        # config is temporary for launching subprocesses
+      # Used to initialize daterange of inits 
+      init_time_start: 2022-01-01
+      init_time_end: 2023-12-30
+      init_freq: 'MS'
+      # chunks
+      time_chunk: 1
+      step_chunk: 32
+      # leadtime in days
+      leadtime: 60
+      # config is temporary for launching subprocesses
+      config_cache: ${output_dir}/60-day_skill_forecast_dlwp-v4/config.yaml
+      overwrite_forecasts: True
+  - name: rmse acc scoring atmos
+    output_subdir: ${output_dir}
+    analysis_params:
+      # name of analysis module 
+      analysis_name: rmse_acc_scoring
+      # logs and std outputs for inference are saved here
+      output_log: ${output_dir}/analysis.log
+      # added to python path for analysis
+      mounted_modules:
+        - /pscratch/sd/n/nacc/dlesym_toolbox
+        - /pscratch/sd/n/nacc/DLESyM
+      # conda environment for analysis
+      conda_env: /pscratch/sd/n/nacc/miniconda/envs/basic_earth2grid_cuHPX
+      # verification data for analysis
+      forecasts:
+        - forecast_file: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt+dlom-gt+dlwp-climo/forecasts/atmos_2022.01.01-2023.12.30_60day.nc
+          # skill cache for analysis, if no file exists, it will be created and saved here. 
+          # path will be siffixed with "_acc" or "_rmse" followed by ".nc"
+          skill_cache_prefix: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt+dlom-gt+dlwp-climo/cahces/atmos_2022.01.01-2023.12.30_60day_6vars
+          # verification data formated as "perfrect" forecast against which to score the forecast
+          verif_file: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt+dlom-gt+dlwp-gt/forecasts/atmos_2022.01.01-2023.12.30_60day.nc
+          # climo forecast to score the forecast against. necessary for ACC calculation.
+          climo_file: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt+dlom-gt+dlwp-climo/forecasts/atmos_2022.01.01-2023.12.30_60day.nc
+          label: climo_1980-2024
+          plotting_kwargs:
+            color: grey
+            linestyle: dashed
+            linewidth: 2
+            label: climo (1980-2024)
+        - forecast_file: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt+dlom-gt+rmse_atmos_sm-v4_precip_pm/forecasts/atmos_2022.01.01-2023.12.30_60day.nc
+          skill_cache_prefix: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt+dlom-gt+rmse_atmos_sm-v4_precip_pm/cahces/atmos_2022.01.01-2023.12.30_60day_6vars
+          verif_file: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt+dlom-gt+dlwp-gt/forecasts/atmos_2022.01.01-2023.12.30_60day.nc
+          climo_file: /pscratch/sd/n/nacc/veggie-dltm/v4/models/dltm-gt+dlom-gt+dlwp-climo/forecasts/atmos_2022.01.01-2023.12.30_60day.nc
+          label: dlwp-v4_driven 
+          plotting_kwargs:
+            color: blue
+            linestyle: solid
+            linewidth: 2
+            label: dlwp-v4
+      # variable skill curves to plot
+      variables:
+        - t2m
+        - z500
+        - t850
+        - q2m
+        - ws10m
+        - z250
+      # number of rows and columns for the subplots
+      nrows: 2
+      ncols: 3      
+      # plotting leadtimes in days 
+      # leadtime_ticks: [0, 15, 30, 45, 60]
+      leadtime_ticks: [0, 12, 24, 36, 48]
+      # plots go here
+      output_directory: ${output_dir}
+      output_file_prefix: climo_vs_dlwp-v4
+      # another temporary config for launching subprocesses
+      config_cache: ${output_dir}/rmse_acc_scoring_analysis.yaml

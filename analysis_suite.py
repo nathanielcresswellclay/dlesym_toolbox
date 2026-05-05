@@ -102,7 +102,8 @@ def _run_analyses_parallel(analysis_params, n_proc):
 
     queue = Queue()
     for config in analysis_params:
-        queue.put(config)
+        if config is not None:
+            queue.put(config)
 
     running = []  # List of tuples: (process, proc_idx, config_path)
 
@@ -129,6 +130,8 @@ def _run_analyses_parallel(analysis_params, n_proc):
                 break
             # Get the next experiment config 
             namespace_config = queue.get()
+
+            # if we're out of analyses to run just hang tight.
             analysis_name = namespace_config.pop("analysis_name", None)
             config_cache = namespace_config.pop("config_cache", None)
             pythonpath_additions = namespace_config.pop("mounted_modules", None)
