@@ -21,6 +21,7 @@ import cartopy.io.shapereader as shpreader
 
 # mounted modules 
 from toolbox_utils import setup_logging
+from z500_climatology import contourf_atmos
 
 # Verification zarr `channel_out` and forecast NetCDF variable name
 T2M_CHANNEL = "t2m"
@@ -59,10 +60,22 @@ def _get_custom_cmap_bwr():
     new_cmap = mcolors.ListedColormap(new_colors)
     return new_cmap
 
-def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str, diff_plot: bool=False):
+def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str, diff_plot: bool=False, vectorize: bool=False):
     """
     Plot global data on a map using the specified mapper.
     """
+
+    if diff_plot:
+        levels = np.arange(-10, 10.01, 1)
+        cbar_ticks = np.arange(-10, 10.01, 5)
+        cmap = _get_custom_cmap_bwr()
+        cbar_label = "T$_{2m}$ difference (K)"
+    else:
+        levels = np.arange(230, 315.01, 5)
+        cbar_ticks = np.arange(235, 310.01, 15)
+        cmap = _get_t2m_cmap()
+        cbar_label = "T$_{2m}$ (K)"
+
     for season in data.season.values:
         # select the data for the current season
         season_data = data.sel(season=season)
@@ -73,39 +86,51 @@ def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str, diff_plot:
             coords={'lat': np.arange(90, -90.1, -1),'lon': np.arange(0, 360, 1)}
         )
 
-        fig, ax = plt.subplots(
-            figsize=(10, 5), subplot_kw={'projection': ccrs.Robinson()}
-        )
-        ax.set_title(f"{season} Climatology", fontsize=15)
-        ax.set_extent([-180, 180, -90, 90], crs=ccrs.PlateCarree())
-        ax.coastlines(zorder=16)
-
         # add cyclic point to the data for plotting
         data_ll_cyclic, lon_cyclic = add_cyclic_point(
             data_ll, coord=data_ll.lon
         )
-        
-        # 2 m temperature in Kelvin (ERA5-style); adjust if your data are Celsius
-        im = ax.contourf(
-            lon_cyclic, data_ll.lat, data_ll_cyclic,
-            transform=ccrs.PlateCarree(),
-            cmap=_get_t2m_cmap() if not diff_plot else _get_custom_cmap_bwr(),
-            levels=np.arange(220, 318, 4) if not diff_plot else np.arange(-8.0, 8.5, 0.5),
-            extend='both',
-            zorder=5,
-        )
+
+        fig, ax, im = contourf_atmos(
+            lat=data_ll.lat, lon=lon_cyclic, data=data_ll_cyclic, 
+            levels=levels, cmap=cmap)
+
+        ax.set_title(f"{season} Climatology", fontsize=15)
 
         # add colorbar
-        cbar = plt.colorbar(im, ax=ax, orientation='horizontal', pad=0.05, shrink=0.6)
-        cbar.set_label(
-            '2 m temperature (K)' if not diff_plot else '2 m temperature difference (K)',
-            fontsize=12,
-        )
+        cbar = plt.colorbar(im, ax=ax, orientation='horizontal', pad=0.1, shrink=0.6, aspect=30)
+        cbar.set_ticks(cbar_ticks)
+        cbar.set_label(cbar_label, fontsize=12)
         # title and save the figure
-        plt.title(f"{season}", fontsize=15)
-        plt.savefig(f"{output_file_prefix}_{season}.png", dpi=300, bbox_inches='tight')
+        if vectorize:
+            plt.savefig(f"{output_file_prefix}_{season}.pdf", dpi=300, bbox_inches='tight')
+        else:
+            plt.savefig(f"{output_file_prefix}_{season}.png", dpi=300, bbox_inches='tight')
         plt.close(fig)
-
+    
+    # ANNUAL PLOT 
+    # note that generally avering is not associative but 
+    #     since seasons have similar cardinality, 
+    #     this approximation is valid.
+    annual_data = data.mean(dim='season') 
+    annual_data_ll = xr.DataArray(
+        mapper.hpx2ll(annual_data.values),
+        dims=['lat', 'lon'], 
+        coords={'lat': np.arange(90, -90.1, -1),'lon': np.arange(0, 360, 1)}
+    )
+    annual_data_ll_cyclic, lon_cyclic = add_cyclic_point(
+        annual_data_ll, coord=annual_data_ll.lon)
+    annual_fig, annual_ax, annual_im = contourf_atmos(
+        lat=annual_data_ll.lat, lon=lon_cyclic, data=annual_data_ll_cyclic, 
+        levels=levels, cmap=cmap)
+    cbar = plt.colorbar(annual_im, ax=annual_ax, orientation='horizontal', pad=0.1, shrink=0.6, aspect=30)
+    cbar.set_ticks(cbar_ticks)
+    cbar.set_label(cbar_label, fontsize=12)
+    if vectorize:
+        annual_fig.savefig(f"{output_file_prefix}_annual.pdf", dpi=300, bbox_inches='tight')
+    else:
+        annual_fig.savefig(f"{output_file_prefix}_annual.png", dpi=300, bbox_inches='tight')
+    plt.close(annual_fig)
     return
 
 def _plot_t2m_climo(config: DictConfig , logger: logging.Logger):
@@ -120,7 +145,7 @@ def _plot_t2m_climo(config: DictConfig , logger: logging.Logger):
         logger.error(str(e))
         return  
 
-    climatology_file = config.verification_file.replace('.zarr', f'_{T2M_CHANNEL}-clima.nc')
+    climatology_file = config.verification_file.replace('.zarr', f'_t2m-clima.nc')
     if os.path.exists(climatology_file):
         logger.info(f"Loading cached climatology from {climatology_file}")
         climatology = xr.open_dataset(climatology_file).targets
@@ -145,13 +170,13 @@ def _plot_t2m_climo(config: DictConfig , logger: logging.Logger):
     # create output directory if it doesn't exist
     os.makedirs(config.output_directory, exist_ok=True)
 
-    obs_climatology_file_prefix = config.output_directory + f'/obs_{T2M_CHANNEL}-climatology'
+    obs_climatology_file_prefix = config.output_directory + f'/obs_t2m-climatology'
     logger.info(f"Plotting observed climatology to {obs_climatology_file_prefix}*")
     _plot_global(climatology, mapper, obs_climatology_file_prefix)
 
     for forecast in config.forecast_params: 
 
-        fcst_climatology_file = forecast.file.replace('.nc', f'_{T2M_CHANNEL}-clima.nc')
+        fcst_climatology_file = forecast.file.replace('.nc', f'_t2m-clima.nc')
         if not os.path.exists(fcst_climatology_file):
 
             logger.info(f"Calculating climatology for {forecast.file} and caching to {fcst_climatology_file}")
@@ -170,14 +195,24 @@ def _plot_t2m_climo(config: DictConfig , logger: logging.Logger):
         # load the forecast climatology
         logger.info(f"Loading cached climatology from {fcst_climatology_file}")
         fcst_climatology = xr.open_dataset(fcst_climatology_file)[T2M_CHANNEL]
-        # average climo into seasons: DJF, MAM, JJA, SON from day of year values
-        fcst_climatology = fcst_climatology.assign_coords(dayofyear = pd.date_range('2000-01-01', '2000-12-31', freq='D')).groupby('dayofyear.season').mean(dim='dayofyear')
-        forecast_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_{T2M_CHANNEL}-climatology'
+        # assign reference datetime values from 2000 for climo cycle
+        ref_datetime = pd.date_range('2000-01-01', '2000-12-31', freq='D')
+        # find day of year in both fcst_climatology and ref_datetime
+        fcst_dayofyear = fcst_climatology.dayofyear.values
+        ref_dayofyear = ref_datetime.dayofyear.values
+        # find the index of the day of year in ref_datetime
+        index = np.where(np.isin(ref_dayofyear, fcst_dayofyear))[0]
+        # assign the day of year to the fcst_climatology
+        fcst_climatology = fcst_climatology.assign_coords(dayofyear = ref_datetime[index])
+        # group by season and mean over day of year
+        fcst_climatology = fcst_climatology.groupby('dayofyear.season').mean(dim='dayofyear')
+        forecast_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_t2m-climatology'
         logger.info(f"Plotting forecast climatology to {forecast_climatology_file_prefix}*")
         _plot_global(fcst_climatology, mapper, forecast_climatology_file_prefix)
         # plot difference map
-        diff_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_{T2M_CHANNEL}-climatology-diff'
-        _plot_global(fcst_climatology - climatology, mapper, diff_climatology_file_prefix, diff_plot=True)
+        diff_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_t2m-climatology-diff'
+        _plot_global(fcst_climatology - climatology, mapper, diff_climatology_file_prefix, diff_plot=True,
+            vectorize=getattr(config, 'vectorize', False))
 
 
     return

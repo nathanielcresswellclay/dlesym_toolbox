@@ -19,9 +19,11 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.util import add_cyclic_point
 import cartopy.io.shapereader as shpreader
+import matplotlib.ticker as mticker
 
 # mounted modules 
 from toolbox_utils import setup_logging
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 def main(config_path: str):
 
@@ -54,7 +56,7 @@ def _get_custom_cmap_blues():
     return new_cmap
 
 # colormap with white as the middle color, bwr base
-def _get_custom_cmap_bwr():
+def get_custom_cmap_bwr():
     """
     Create a custom colormap with white as the first color.
     """
@@ -66,10 +68,128 @@ def _get_custom_cmap_bwr():
     new_cmap = mcolors.ListedColormap(new_colors)
     return new_cmap
 
-def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str, diff_plot: bool=False):
+# helper function to plot the contourf and physical features
+def land_contourf(lat, lon, data, levels, cmap):
+
+    fig, ax = plt.subplots(
+        figsize=(10, 5), subplot_kw={'projection': ccrs.PlateCarree()}
+    )
+    ax.add_feature(cfeature.OCEAN, zorder=10, facecolor="lightgrey")
+    ax.add_feature(
+        cfeature.LAKES,
+        zorder=10,
+        facecolor="lightgrey",
+        edgecolor="black",
+        linewidth=0.5,
+    )
+    ax.set_extent([-180, 180, -70, 80], crs=ccrs.PlateCarree())
+    ax.coastlines()
+    
+    im = ax.contourf(
+        lon,
+        lat,
+        data,
+        transform=ccrs.PlateCarree(),
+        cmap=cmap,
+        levels=levels,
+        extend="both",
+    )
+    shpfilename = shpreader.natural_earth(
+        resolution="110m", category="cultural", name="admin_0_countries"
+    )
+    reader = shpreader.Reader(shpfilename)
+    countries = reader.records()
+
+    # Reduce spurious land/ice-sheet extent in coarse masks
+    for country in countries:
+        if country.attributes["NAME"] in ["Greenland", "Antarctica"]:
+            ax.add_geometries(
+                [country.geometry],
+                crs=ccrs.PlateCarree(),
+                facecolor="white",
+                edgecolor="black",
+                linewidth=0.5,
+                zorder=11,
+            )
+
+    # Add gridlines and labels
+    gl = ax.gridlines(
+        crs=ccrs.PlateCarree(), 
+        draw_labels=True,
+        linewidth=.75, 
+        color='black', 
+        alpha=0.5, 
+        linestyle='--',
+        zorder=12,
+    )
+
+    # GRIDLINES
+    grid_lon = [-180, -90, 0, 90, 180]
+    grid_lat = [-45, 0, 45]
+
+    # Specify exactly where you want the lines
+    gl.xlocator = mticker.FixedLocator(grid_lon)
+    gl.ylocator = mticker.FixedLocator(grid_lat)
+
+    # Control label visibility (optional: hide top/right to look cleaner)
+    gl.top_labels = False
+    gl.right_labels = False
+
+    # Standardize label formatting
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+
+    # Force the gridlines to the top of the stack
+    gl.zorder = 20
+
+    # Combined list for the side-ticks (10s and 5s)
+    # We use these as "Minor" ticks so they don't overwrite the "Major" grid ticks
+    sub_lon = np.arange(-180, 181, 5)
+    sub_lat = np.arange(-70, 81, 5)
+
+    # 2. SET THE XL TICKS (Major)
+    # These align with your gridlines and the gl labels
+    ax.set_xticks(grid_lon, crs=ccrs.PlateCarree())
+    ax.set_yticks(grid_lat, crs=ccrs.PlateCarree())
+    ax.tick_params(axis='both', which='major', length=6, width=1.0, zorder=25)
+
+    # 3. SET THE 10s and 5s (Minor)
+    ax.xaxis.set_minor_locator(mticker.FixedLocator(sub_lon))
+    ax.yaxis.set_minor_locator(mticker.FixedLocator(sub_lat))
+    ax.tick_params(axis='both', which='minor', length=3.5, width=0.5, zorder=25)
+
+    # 4. FIX GL labels
+    # This directly tells the label artists to move further away
+    gl.xpadding = 10  # Horizontal padding for longitude
+    gl.ypadding = 10  # Vertical padding for latitude
+    
+    # If the above still fails, force it via the label style dictionary:
+    gl.xlabel_style = {'size': 10, 'color': 'black', 'va': 'top'}
+    gl.ylabel_style = {'size': 10, 'color': 'black', 'ha': 'right'}
+
+    # 5. Final Cleanup
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+
+    return fig, ax, im
+
+def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str, diff_plot: bool=False, vectorize: bool=False):
     """
     Plot global data on a map using the specified mapper.
     """
+
+    if diff_plot:
+        levels = np.arange(-0.2, 0.201, 0.02)
+        cbar_ticks = np.arange(-0.2, 0.201, 0.1)
+        cmap = get_custom_cmap_bwr()
+        cbar_label = "Soil moisture bias (m$^3$m$^{-3}$)"
+
+    else:
+        levels = np.arange(0, .801, 0.05)
+        cbar_ticks = np.arange(0, .801, 0.1)
+        cmap = _get_custom_cmap_blues()
+        cbar_label = "Soil moisture (m$^3$m$^{-3}$)"
+
     for season in data.season.values:
         # select the data for the current season
         season_data = data.sel(season=season)
@@ -80,53 +200,58 @@ def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str, diff_plot:
             coords={'lat': np.arange(90, -90.1, -1),'lon': np.arange(0, 360, 1)}
         )
 
-        fig, ax = plt.subplots(
-            figsize=(10, 5), subplot_kw={'projection': ccrs.Robinson()}
-        )
-        ax.set_title(f"{season} Climatology", fontsize=15)
-        ax.add_feature(cfeature.OCEAN, zorder=10, facecolor='white')
-        ax.set_extent([-180, 180, -90, 90], crs=ccrs.PlateCarree())
-        ax.coastlines()
-
         # add cyclic point to the data for plotting
         data_ll_cyclic, lon_cyclic = add_cyclic_point(
             data_ll, coord=data_ll.lon
         )
         
         # plot the data
-        im = ax.contourf(
-            lon_cyclic, data_ll.lat, data_ll_cyclic,
-            transform=ccrs.PlateCarree(),
-            cmap=_get_custom_cmap_blues() if not diff_plot else _get_custom_cmap_bwr(),
-            levels=np.arange(0, .801, 0.05) if not diff_plot else np.arange(-0.2, 0.201, 0.02),
-            extend='both',
-        )
+        fig, ax, im = land_contourf(
+            lat=data_ll.lat, lon=lon_cyclic, data=data_ll_cyclic, 
+            levels=levels, cmap=cmap)
 
-        # adding a patch over greenland and antarctica to hide NDVI detected on ice sheets
-        shpfilename = shpreader.natural_earth(
-            resolution='110m', category='cultural', name='admin_0_countries'
-        )
-        reader = shpreader.Reader(shpfilename)
-        countries = reader.records()
-
-        # Loop through and find Greenland and Antarctica
-        for country in countries:
-
-            if country.attributes['NAME'] in ['Greenland', 'Antarctica']:
-                ax.add_geometries(
-                    [country.geometry],
-                    crs=ccrs.PlateCarree(),
-                    facecolor='grey',     # change color to whatever you like
-                    edgecolor='black',
-                )
-
+        # format figure
+        ax.set_title(f"{season} Climatology", fontsize=15)
         # add colorbar
-        cbar = plt.colorbar(im, ax=ax, orientation='horizontal', pad=0.05, shrink=0.6)
-        cbar.set_label('Soil Moisture (m$^3$m$^{-3}$)', fontsize=12)
+        cbar = plt.colorbar(im, ax=ax, orientation='horizontal', pad=0.1, shrink=0.6, aspect=30)
+
+        # format cbar 
+        cbar.set_ticks(cbar_ticks)
+        cbar.set_label(cbar_label, fontsize=12)
+
         # title and save the figure
-        plt.title(f"{season}", fontsize=15)
-        plt.savefig(f"{output_file_prefix}_{season}.png", dpi=300, bbox_inches='tight')
+        if vectorize:
+            fig.savefig(f"{output_file_prefix}_{season}.pdf", dpi=300, bbox_inches='tight')
+        else:
+            fig.savefig(f"{output_file_prefix}_{season}.png", dpi=300, bbox_inches='tight')
+
         plt.close(fig)
+    
+    # ANNUAL PLOT 
+    # note that generally avering is not associative but 
+    #     since seasons have similar cardinality, 
+    #     this approximation is valid.
+    annual_data = data.mean(dim='season') 
+    annual_data_ll = xr.DataArray(
+        mapper.hpx2ll(annual_data.values),
+        dims=['lat', 'lon'], 
+        coords={'lat': np.arange(90, -90.1, -1),'lon': np.arange(0, 360, 1)}
+    )
+    annual_data_ll_cyclic, lon_cyclic = add_cyclic_point(
+        annual_data_ll, coord=annual_data_ll.lon)
+    annual_fig, annual_ax, annual_im = land_contourf(
+        lat=annual_data_ll.lat, lon=lon_cyclic, data=annual_data_ll_cyclic, 
+        levels=levels, cmap=cmap)
+    # colorbar
+    cbar = plt.colorbar(annual_im, ax=annual_ax, orientation='horizontal', pad=0.1, shrink=0.6, aspect=30)
+    cbar.set_ticks(cbar_ticks)
+    cbar.set_label(cbar_label, fontsize=12)
+    if vectorize:
+        annual_fig.savefig(f"{output_file_prefix}_annual.pdf", dpi=300, bbox_inches='tight')
+    else:
+        annual_fig.savefig(f"{output_file_prefix}_annual.png", dpi=300, bbox_inches='tight')
+    plt.close(annual_fig)
+    return
 
     return
 
@@ -203,15 +328,25 @@ def _plot_sm_climo(config: DictConfig , logger: logging.Logger):
         # load the forecast climatology
         logger.info(f"Loading cached climatology from {fcst_climatology_file}")
         fcst_climatology = xr.open_dataset(fcst_climatology_file).swvl1  
-        # average climo into seasons: DJF, MAM, JJA, SON from day of year values
-        fcst_climatology = fcst_climatology.assign_coords(dayofyear = pd.date_range('2000-01-01', '2000-12-31', freq='D')).groupby('dayofyear.season').mean(dim='dayofyear')
+        # assign reference datetime values from 2000 for climo cycle
+        ref_datetime = pd.date_range('2000-01-01', '2000-12-31', freq='D')
+        # find day of year in both fcst_climatology and ref_datetime
+        fcst_dayofyear = fcst_climatology.dayofyear.values
+        ref_dayofyear = ref_datetime.dayofyear.values
+        # find the index of the day of year in ref_datetime
+        index = np.where(np.isin(ref_dayofyear, fcst_dayofyear))[0]
+        # assign the day of year to the fcst_climatology
+        fcst_climatology = fcst_climatology.assign_coords(dayofyear = ref_datetime[index])
+        # group by season and mean over day of year
+        fcst_climatology = fcst_climatology.groupby('dayofyear.season').mean(dim='dayofyear')
         # plot seasons from forecast climatology
         forecast_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_sm-climatology'
         logger.info(f"Plotting forecast climatology to {forecast_climatology_file_prefix}*")
         _plot_global(fcst_climatology, mapper, forecast_climatology_file_prefix)
         # plot difference map
         diff_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_sm-climatology-diff'
-        _plot_global(fcst_climatology - climatology, mapper, diff_climatology_file_prefix, diff_plot=True)
+        _plot_global(fcst_climatology - climatology, mapper, diff_climatology_file_prefix, diff_plot=True,
+            vectorize=getattr(config, 'vectorize', False))
 
 
     return

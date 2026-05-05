@@ -16,18 +16,19 @@ import matplotlib.colors as mcolors
 import matplotlib.patches as mpatches
 import matplotlib.cm as cm
 import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 from cartopy.util import add_cyclic_point
 import cartopy.io.shapereader as shpreader
-import matplotlib.ticker as mticker
 
 # mounted modules 
 from toolbox_utils import setup_logging
-from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+from forced_sm_climatology import land_contourf, get_custom_cmap_bwr
 
 def main(config_path: str):
 
     """
-    Plot seasonal climatology of 500 hPa geopotential height (verification and forecasts).
+    send config to routines that plot t2m and z500 anomalies during the 2003 heatwave in Europe
+
     """
 
     # load the config file
@@ -36,112 +37,21 @@ def main(config_path: str):
 
     logger.info("Loaded config:\n\n" + OmegaConf.to_yaml(config))  # prints the loaded YAML for clarity
 
-    _plot_z500_climo(config, logger)
-    logger.info("Finished plotting climatology for Z500.")
+    _plot_st_climo(config, logger)
+    logger.info("Finished plotting climatology for ST.")
 
 
-def _get_z500_cmap():
-    """Sequential colormap for absolute geopotential height."""
-    return cm.get_cmap("Spectral_r")
-
-# colormap with white as the middle color, bwr base
-def _get_custom_cmap_bwr():
+# colormap with white as the middle color, coolwarm base
+def _get_custom_cmap_turbo():
     """
     Create a custom colormap with white as the first color.
     """
     # Get the 'coolwarm' colormap
-    bwr = cm.get_cmap('bwr_r')
+    turbo = cm.get_cmap('turbo')
     # Create a new colormap with white as the middle color
-    new_colors = bwr(np.linspace(0, 1, 256))
-    for i in range(112,147): new_colors[i] = mcolors.to_rgba('whitesmoke')  # RGBA for white
+    new_colors = turbo(np.linspace(0, 1, 256))
     new_cmap = mcolors.ListedColormap(new_colors)
     return new_cmap
-
-# helper function to plot the contourf and physical features
-def contourf_atmos(lat, lon, data, levels, cmap):
-
-    fig, ax = plt.subplots(
-        figsize=(10, 5), subplot_kw={'projection': ccrs.PlateCarree()}
-    )
-
-    ax.set_extent([-180, 180, -90, 90], crs=ccrs.PlateCarree())
-    ax.coastlines()
-    
-    im = ax.contourf(
-        lon,
-        lat,
-        data,
-        transform=ccrs.PlateCarree(),
-        cmap=cmap,
-        levels=levels,
-        extend="both",
-    )
-    shpfilename = shpreader.natural_earth(
-        resolution="110m", category="cultural", name="admin_0_countries"
-    )
-    reader = shpreader.Reader(shpfilename)
-    countries = reader.records()
-
-    # Add gridlines and labels
-    gl = ax.gridlines(
-        crs=ccrs.PlateCarree(), 
-        draw_labels=True,
-        linewidth=.75, 
-        color='black', 
-        alpha=0.5, 
-        linestyle='--',
-        zorder=12,
-    )
-
-    # GRIDLINES
-    grid_lon = [-180, -90, 0, 90, 180]
-    grid_lat = [-90, -45, 0, 45, 90]
-
-    # Specify exactly where you want the lines
-    gl.xlocator = mticker.FixedLocator(grid_lon)
-    gl.ylocator = mticker.FixedLocator(grid_lat)
-
-    # Control label visibility (optional: hide top/right to look cleaner)
-    gl.top_labels = False
-    gl.right_labels = False
-
-    # Standardize label formatting
-    gl.xformatter = LONGITUDE_FORMATTER
-    gl.yformatter = LATITUDE_FORMATTER
-
-    # Force the gridlines to the top of the stack
-    gl.zorder = 20
-
-    # Combined list for the side-ticks (10s and 5s)
-    # We use these as "Minor" ticks so they don't overwrite the "Major" grid ticks
-    sub_lon = np.arange(-180, 181, 5)
-    sub_lat = np.arange(-90, 91, 5)
-
-    # 2. SET THE XL TICKS (Major)
-    # These align with your gridlines and the gl labels
-    ax.set_xticks(grid_lon, crs=ccrs.PlateCarree())
-    ax.set_yticks(grid_lat, crs=ccrs.PlateCarree())
-    ax.tick_params(axis='both', which='major', length=6, width=1.0, zorder=25)
-
-    # 3. SET THE 10s and 5s (Minor)
-    ax.xaxis.set_minor_locator(mticker.FixedLocator(sub_lon))
-    ax.yaxis.set_minor_locator(mticker.FixedLocator(sub_lat))
-    ax.tick_params(axis='both', which='minor', length=3.5, width=0.5, zorder=25)
-
-    # 4. FIX GL labels
-    # This directly tells the label artists to move further away
-    gl.xpadding = 10  # Horizontal padding for longitude
-    gl.ypadding = 10  # Vertical padding for latitude
-    
-    # If the above still fails, force it via the label style dictionary:
-    gl.xlabel_style = {'size': 10, 'color': 'black', 'va': 'top'}
-    gl.ylabel_style = {'size': 10, 'color': 'black', 'ha': 'right'}
-
-    # 5. Final Cleanup
-    ax.set_xticklabels([])
-    ax.set_yticklabels([])
-
-    return fig, ax, im
 
 def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str, diff_plot: bool=False, vectorize: bool=False):
     """
@@ -149,15 +59,15 @@ def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str, diff_plot:
     """
 
     if diff_plot:
-        levels = np.arange(-150, 150.01, 5)
-        cbar_ticks = np.arange(-150, 150.01, 25)
-        cmap = _get_custom_cmap_bwr()
-        cbar_label = "Z$_{500}$ difference (m)"
+        levels = np.arange(-16, 16.01, 2) # kelvin
+        cmap = get_custom_cmap_bwr()
+        cbar_ticks = np.arange(-16, 16.01, 8)
+        cbar_label = "Soil temperature bias (K)"
     else:
-        levels = np.arange(4900, 6000, 50)
-        cbar_ticks = np.arange(4900, 6100, 200)
-        cmap = _get_z500_cmap()
-        cbar_label = "Z$_{500}$ (m)"
+        levels = np.arange(265, 311, 1) # kelvin
+        cmap = _get_custom_cmap_turbo()
+        cbar_ticks = np.arange(265, 311, 10)
+        cbar_label = "Soil temperature (K)"
 
     for season in data.season.values:
         # select the data for the current season
@@ -169,29 +79,31 @@ def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str, diff_plot:
             coords={'lat': np.arange(90, -90.1, -1),'lon': np.arange(0, 360, 1)}
         )
 
-        # scale from geopotential meters (gpm) to hPa
-        data_ll = data_ll / 9.80665
-        
         # add cyclic point to the data for plotting
         data_ll_cyclic, lon_cyclic = add_cyclic_point(
             data_ll, coord=data_ll.lon
         )
-
-        fig, ax, im = contourf_atmos(
+        
+        # plot the data
+        fig, ax, im = land_contourf(
             lat=data_ll.lat, lon=lon_cyclic, data=data_ll_cyclic, 
             levels=levels, cmap=cmap)
 
+        # format figure
         ax.set_title(f"{season} Climatology", fontsize=15)
-
         # add colorbar
         cbar = plt.colorbar(im, ax=ax, orientation='horizontal', pad=0.1, shrink=0.6, aspect=30)
+
+        # format cbar 
         cbar.set_ticks(cbar_ticks)
         cbar.set_label(cbar_label, fontsize=12)
+
         # title and save the figure
         if vectorize:
-            plt.savefig(f"{output_file_prefix}_{season}.pdf", dpi=300, bbox_inches='tight')
+            fig.savefig(f"{output_file_prefix}_{season}.pdf", dpi=300, bbox_inches='tight')
         else:
-            plt.savefig(f"{output_file_prefix}_{season}.png", dpi=300, bbox_inches='tight')
+            fig.savefig(f"{output_file_prefix}_{season}.png", dpi=300, bbox_inches='tight')
+
         plt.close(fig)
     
     # ANNUAL PLOT 
@@ -206,9 +118,10 @@ def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str, diff_plot:
     )
     annual_data_ll_cyclic, lon_cyclic = add_cyclic_point(
         annual_data_ll, coord=annual_data_ll.lon)
-    annual_fig, annual_ax, annual_im = contourf_atmos(
+    annual_fig, annual_ax, annual_im = land_contourf(
         lat=annual_data_ll.lat, lon=lon_cyclic, data=annual_data_ll_cyclic, 
         levels=levels, cmap=cmap)
+    # colorbar
     cbar = plt.colorbar(annual_im, ax=annual_ax, orientation='horizontal', pad=0.1, shrink=0.6, aspect=30)
     cbar.set_ticks(cbar_ticks)
     cbar.set_label(cbar_label, fontsize=12)
@@ -219,9 +132,9 @@ def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str, diff_plot:
     plt.close(annual_fig)
     return
 
-def _plot_z500_climo(config: DictConfig , logger: logging.Logger):
-    
-    # try to import remap module from DLESyM 
+def _plot_st_climo(config: DictConfig , logger: logging.Logger):
+
+    # try to import remap module from DLESyM
     # NOTE there are some brittle dependencies to get remap to work properly
     # for environment recipe: https://github.com/AtmosSci-DLESM/DLESyM/blob/main/environments/dlesym-0.1.yaml
     try: 
@@ -232,14 +145,14 @@ def _plot_z500_climo(config: DictConfig , logger: logging.Logger):
         return  
 
     # next we need to get the climatology of verif data for comparison
-    climatology_file = config.verification_file.replace('.zarr', '_z500-clima.nc')
+    climatology_file = config.verification_file.replace('.zarr', '_st-clima.nc')
     if os.path.exists(climatology_file):
         logger.info(f"Loading cached climatology from {climatology_file}")
         climatology = xr.open_dataset(climatology_file).targets
     else:
-        logger.info(f"Calculating climatology from {config.verification_file}")
+        logger.info("Calculating climatology stl1 from verification data")
         climatology = xr.open_zarr(config.verification_file).targets.sel(
-            channel_out="z500"
+            channel_out="stl1",
         ).groupby('time.dayofyear').mean(dim='time')
         climatology.to_netcdf(climatology_file)
         logger.info(f"Climatology saved to {climatology_file}")
@@ -258,7 +171,7 @@ def _plot_z500_climo(config: DictConfig , logger: logging.Logger):
     os.makedirs(config.output_directory, exist_ok=True)
 
     # plot seasons from observed climatology
-    obs_climatology_file_prefix = config.output_directory + '/obs_z500-climatology'
+    obs_climatology_file_prefix = config.output_directory + '/obs_st-climatology'
     logger.info(f"Plotting observed climatology to {obs_climatology_file_prefix}*")
     _plot_global(climatology, mapper, obs_climatology_file_prefix)
 
@@ -269,12 +182,12 @@ def _plot_z500_climo(config: DictConfig , logger: logging.Logger):
     for forecast in config.forecast_params: 
 
         # check if cache for climo exists, if not calculate it
-        fcst_climatology_file = forecast.file.replace('.nc', '_z500-clima.nc')
+        fcst_climatology_file = forecast.file.replace('.nc', '_st-clima.nc')
         if not os.path.exists(fcst_climatology_file):
 
             logger.info(f"Calculating climatology for {forecast.file} and caching to {fcst_climatology_file}")
             # open the forecast file
-            fcst = xr.open_dataset(forecast.file).z500
+            fcst = xr.open_dataset(forecast.file).stl1
             # resolve the step dimension into valid time
             valid_time = fcst.time.values + fcst.step.values
             fcst = fcst.assign_coords({'step': valid_time})
@@ -288,7 +201,7 @@ def _plot_z500_climo(config: DictConfig , logger: logging.Logger):
         
         # load the forecast climatology
         logger.info(f"Loading cached climatology from {fcst_climatology_file}")
-        fcst_climatology = xr.open_dataset(fcst_climatology_file).z500  
+        fcst_climatology = xr.open_dataset(fcst_climatology_file).stl1 
         # assign reference datetime values from 2000 for climo cycle
         ref_datetime = pd.date_range('2000-01-01', '2000-12-31', freq='D')
         # find day of year in both fcst_climatology and ref_datetime
@@ -301,14 +214,13 @@ def _plot_z500_climo(config: DictConfig , logger: logging.Logger):
         # group by season and mean over day of year
         fcst_climatology = fcst_climatology.groupby('dayofyear.season').mean(dim='dayofyear')
         # plot seasons from forecast climatology
-        forecast_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_z500-climatology'
+        forecast_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_st-climatology'
         logger.info(f"Plotting forecast climatology to {forecast_climatology_file_prefix}*")
         _plot_global(fcst_climatology, mapper, forecast_climatology_file_prefix)
         # plot difference map
-        diff_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_z500-climatology-diff'
-        _plot_global(fcst_climatology - climatology, mapper, diff_climatology_file_prefix, diff_plot=True, 
+        diff_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_st-climatology-diff'
+        _plot_global(fcst_climatology - climatology, mapper, diff_climatology_file_prefix, diff_plot=True,
             vectorize=getattr(config, 'vectorize', False))
-
 
     return
     
@@ -318,9 +230,7 @@ if __name__ == "__main__":
 
     # receive arguments 
     import argparse
-    parser = argparse.ArgumentParser(
-        description="Plot seasonal climatology of 500 hPa geopotential height (z500)."
-    )
+    parser = argparse.ArgumentParser(description="Plot climatology of ST over historical run.")
     parser.add_argument("config", type=str, help="Path to the YAML configuration file")
     args = parser.parse_args()
 

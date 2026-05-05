@@ -22,6 +22,7 @@ import cartopy.io.shapereader as shpreader
 
 # mounted modules 
 from toolbox_utils import setup_logging
+from forced_sm_climatology import land_contourf, get_custom_cmap_bwr
 
 def main(config_path: str):
 
@@ -46,29 +47,28 @@ def _get_custom_cmap_brbg():
     Create a custom colormap with white as the first color.
     """
     # Get the 'coolwarm' colormap
-    bwr = cm.get_cmap('BrBG')
+    brbg = cm.get_cmap('BrBG')
     # Create a new colormap with white as the middle color
-    new_colors = bwr(np.linspace(0, 1, 256))
+    new_colors = brbg(np.linspace(0, 1, 256))
     new_cmap = mcolors.ListedColormap(new_colors)
     return new_cmap
 
-# colormap with white as the middle color, bwr base
-def _get_custom_cmap_bwr():
-    """
-    Create a custom colormap with white as the first color.
-    """
-    # Get the 'coolwarm' colormap
-    bwr = cm.get_cmap('bwr')
-    # Create a new colormap with white as the middle color
-    new_colors = bwr(np.linspace(0, 1, 256))
-    for i in range(112,147): new_colors[i] = mcolors.to_rgba('whitesmoke')  # RGBA for white
-    new_cmap = mcolors.ListedColormap(new_colors)
-    return new_cmap
-
-def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str, diff_plot: bool=False):
+def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str, diff_plot: bool=False, vectorize: bool=False):
     """
     Plot global data on a map using the specified mapper.
     """
+
+    if diff_plot:
+        levels = np.arange(-0.4, 0.41, 0.05)
+        cmap = get_custom_cmap_bwr()
+        cbar_ticks = np.arange(-0.4, 0.41, 0.2)
+        cbar_label = "NDVI bias"
+    else:
+        levels = np.arange(-.25, 1.0, 0.05)
+        cmap = _get_custom_cmap_brbg()
+        cbar_ticks = np.arange(-.15, 0.9, 0.15)
+        cbar_label = "NDVI"
+
     for season in data.season.values:
         # select the data for the current season
         season_data = data.sel(season=season)
@@ -79,57 +79,57 @@ def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str, diff_plot:
             coords={'lat': np.arange(90, -90.1, -1),'lon': np.arange(0, 360, 1)}
         )
 
-        fig, ax = plt.subplots(
-            figsize=(10, 5), subplot_kw={'projection': ccrs.Robinson()}
-        )
-        ax.set_title(f"{season} Climatology", fontsize=15)
-        ax.add_feature(cfeature.OCEAN, zorder=10, facecolor='white')
-        ax.set_extent([-180, 180, -90, 90], crs=ccrs.PlateCarree())
-        ax.coastlines()
-
         # add cyclic point to the data for plotting
         data_ll_cyclic, lon_cyclic = add_cyclic_point(
             data_ll, coord=data_ll.lon
         )
         
         # plot the data
-        im = ax.contourf(
-            lon_cyclic, data_ll.lat, data_ll_cyclic,
-            transform=ccrs.PlateCarree(),
-            cmap=_get_custom_cmap_brbg() if not diff_plot else _get_custom_cmap_bwr(),
-            levels=np.arange(-.25, 1.0, 0.05) if not diff_plot else np.arange(-0.4, 0.4, 0.05),
-            extend='both',
-        )
+        fig, ax, im = land_contourf(
+            lat=data_ll.lat, lon=lon_cyclic, data=data_ll_cyclic, 
+            levels=levels, cmap=cmap)
 
-        # adding a patch over greenland and antarctica to hide NDVI detected on ice sheets
-        shpfilename = shpreader.natural_earth(
-            resolution='110m', category='cultural', name='admin_0_countries'
-        )
-        reader = shpreader.Reader(shpfilename)
-        countries = reader.records()
-
-        # Loop through and find Greenland and Antarctica
-        for country in countries:
-
-            if country.attributes['NAME'] in ['Greenland', 'Antarctica']:
-                ax.add_geometries(
-                    [country.geometry],
-                    crs=ccrs.PlateCarree(),
-                    facecolor='grey',     # change color to whatever you like
-                    edgecolor='black',
-                )
-
+        # format figure
+        ax.set_title(f"{season} Climatology", fontsize=15)
         # add colorbar
-        cbar = plt.colorbar(im, ax=ax, orientation='horizontal', pad=0.05, shrink=0.6)
-        # if diff plot set the ticks to be symmetric around zero
-        if diff_plot:
-            cbar.set_ticks(np.arange(-.4, 0.41, 0.2))
-        cbar.set_label('NDVI', fontsize=12)
-        # title and save the figure
-        plt.title(f"{season}", fontsize=15)
-        plt.savefig(f"{output_file_prefix}_{season}.png", dpi=300, bbox_inches='tight')
-        plt.close(fig)
+        cbar = plt.colorbar(im, ax=ax, orientation='horizontal', pad=0.1, shrink=0.6, aspect=30)
 
+        # format cbar 
+        cbar.set_ticks(cbar_ticks)
+        cbar.set_label(cbar_label, fontsize=12)
+
+        # title and save the figure
+        if vectorize:
+            fig.savefig(f"{output_file_prefix}_{season}.pdf", dpi=300, bbox_inches='tight')
+        else:
+            fig.savefig(f"{output_file_prefix}_{season}.png", dpi=300, bbox_inches='tight')
+
+        plt.close(fig)
+    
+    # ANNUAL PLOT 
+    # note that generally avering is not associative but 
+    #     since seasons have similar cardinality, 
+    #     this approximation is valid.
+    annual_data = data.mean(dim='season') 
+    annual_data_ll = xr.DataArray(
+        mapper.hpx2ll(annual_data.values),
+        dims=['lat', 'lon'], 
+        coords={'lat': np.arange(90, -90.1, -1),'lon': np.arange(0, 360, 1)}
+    )
+    annual_data_ll_cyclic, lon_cyclic = add_cyclic_point(
+        annual_data_ll, coord=annual_data_ll.lon)
+    annual_fig, annual_ax, annual_im = land_contourf(
+        lat=annual_data_ll.lat, lon=lon_cyclic, data=annual_data_ll_cyclic, 
+        levels=levels, cmap=cmap)
+    # colorbar
+    cbar = plt.colorbar(annual_im, ax=annual_ax, orientation='horizontal', pad=0.1, shrink=0.6, aspect=30)
+    cbar.set_ticks(cbar_ticks)
+    cbar.set_label(cbar_label, fontsize=12)
+    if vectorize:
+        annual_fig.savefig(f"{output_file_prefix}_annual.pdf", dpi=300, bbox_inches='tight')
+    else:
+        annual_fig.savefig(f"{output_file_prefix}_annual.png", dpi=300, bbox_inches='tight')
+    plt.close(annual_fig)
     return
 
 def _plot_ndvi_climo(config: DictConfig , logger: logging.Logger):
@@ -202,15 +202,25 @@ def _plot_ndvi_climo(config: DictConfig , logger: logging.Logger):
         # load the forecast climatology
         logger.info(f"Loading cached climatology from {fcst_climatology_file}")
         fcst_climatology = xr.open_dataset(fcst_climatology_file).NDVI_gapfill  
-        # average climo into seasons: DJF, MAM, JJA, SON from day of year values
-        fcst_climatology = fcst_climatology.assign_coords(dayofyear = pd.date_range('2000-01-01', '2000-12-31', freq='D')).groupby('dayofyear.season').mean(dim='dayofyear')
+        # assign reference datetime values from 2000 for climo cycle
+        ref_datetime = pd.date_range('2000-01-01', '2000-12-31', freq='D')
+        # find day of year in both fcst_climatology and ref_datetime
+        fcst_dayofyear = fcst_climatology.dayofyear.values
+        ref_dayofyear = ref_datetime.dayofyear.values
+        # find the index of the day of year in ref_datetime
+        index = np.where(np.isin(ref_dayofyear, fcst_dayofyear))[0]
+        # assign the day of year to the fcst_climatology
+        fcst_climatology = fcst_climatology.assign_coords(dayofyear = ref_datetime[index])
+        # group by season and mean over day of year
+        fcst_climatology = fcst_climatology.groupby('dayofyear.season').mean(dim='dayofyear')
         # plot seasons from forecast climatology
         forecast_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_ndvi-climatology'
         logger.info(f"Plotting forecast climatology to {forecast_climatology_file_prefix}*")
         _plot_global(fcst_climatology, mapper, forecast_climatology_file_prefix)
         # plot difference map
         diff_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_ndvi-climatology-diff'
-        _plot_global(fcst_climatology - climatology, mapper, diff_climatology_file_prefix, diff_plot=True)
+        _plot_global(fcst_climatology - climatology, mapper, diff_climatology_file_prefix, diff_plot=True,
+            vectorize=getattr(config, 'vectorize', False))
 
     return
     

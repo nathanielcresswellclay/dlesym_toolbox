@@ -112,7 +112,7 @@ def _plot_global(data: xr.DataArray, mapper, output_file_prefix: str, diff_plot:
                 )
 
         # add colorbar
-        cbar = plt.colorbar(im, ax=ax, orientation='horizontal', pad=0.05, shrink=0.6)
+        cbar = plt.colorbar(im, ax=ax, orientation='horizontal', pad=0.05, shrink=0.6, aspect=30)
         cbar.set_label('SST (K)' if not diff_plot else 'SST difference (K)', fontsize=12)
         # title and save the figure
         plt.title(f"{season}", fontsize=15)
@@ -191,8 +191,17 @@ def _plot_sst_climo(config: DictConfig , logger: logging.Logger):
         # load the forecast climatology
         logger.info(f"Loading cached climatology from {fcst_climatology_file}")
         fcst_climatology = xr.open_dataset(fcst_climatology_file).sst  
-        # average climo into seasons: DJF, MAM, JJA, SON from day of year values
-        fcst_climatology = fcst_climatology.assign_coords(dayofyear = pd.date_range('2000-01-01', '2000-12-31', freq='D')).groupby('dayofyear.season').mean(dim='dayofyear')
+        # assign reference datetime values from 2000 for climo cycle
+        ref_datetime = pd.date_range('2000-01-01', '2000-12-31', freq='D')
+        # find day of year in both fcst_climatology and ref_datetime
+        fcst_dayofyear = fcst_climatology.dayofyear.values
+        ref_dayofyear = ref_datetime.dayofyear.values
+        # find the index of the day of year in ref_datetime
+        index = np.where(np.isin(ref_dayofyear, fcst_dayofyear))[0]
+        # assign the day of year to the fcst_climatology
+        fcst_climatology = fcst_climatology.assign_coords(dayofyear = ref_datetime[index])
+        # group by season and mean over day of year
+        fcst_climatology = fcst_climatology.groupby('dayofyear.season').mean(dim='dayofyear')
         # plot seasons from forecast climatology
         forecast_climatology_file_prefix = config.output_directory + f'{forecast.model_id}_sst-climatology'
         logger.info(f"Plotting forecast climatology to {forecast_climatology_file_prefix}*")

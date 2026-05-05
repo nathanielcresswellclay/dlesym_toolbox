@@ -45,6 +45,7 @@ def main(config_path: str):
     if config.plot_land:
         from forced_ndvi_climatology import _plot_ndvi_climo
         from forced_sm_climatology import _plot_sm_climo
+        from forced_st_climatology import _plot_st_climo
         land_one = [{"file": fp.land_file, "model_id": mid}]
         ndvi_config = OmegaConf.create()
         ndvi_config.verification_file = config.verification_file_land
@@ -56,6 +57,11 @@ def main(config_path: str):
         sm_config.output_directory = config.output_directory + "/sm_climatology/"
         sm_config.forecast_params = land_one
         _plot_sm_climo(sm_config, logger)
+        st_config = OmegaConf.create()
+        st_config.verification_file = config.verification_file_land
+        st_config.output_directory = config.output_directory + "/st_climatology/"
+        st_config.forecast_params = land_one
+        _plot_st_climo(st_config, logger)
     if config.plot_atmos:
         from t2m_climatology import _plot_t2m_climo
         from z500_climatology import _plot_z500_climo
